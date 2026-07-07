@@ -5,6 +5,7 @@ import { getProfilConnecte, peutGererTravaux } from "@/lib/auth";
 import { AppHeader } from "@/components/app-header";
 import { Badge } from "@/components/ui/badge";
 import { TravailForm } from "../travail-form";
+import { ChangerStatut } from "../changer-statut";
 import { modifierTravail } from "../actions";
 import {
   STATUT_LABELS,
@@ -68,10 +69,15 @@ export default async function TravailPage({
             {formatDateFr(travail.created_at)} · dernière modification le{" "}
             {formatDateFr(travail.updated_at)}
           </p>
-          <p className="text-xs text-muted-foreground">
-            Le statut évoluera via le Kanban (étape 3) et le circuit de
-            validation (étape 5).
-          </p>
+          {modifiable && (
+            <div className="mt-1">
+              <ChangerStatut
+                travailId={travail.id}
+                statut={statut}
+                estDirection={profil.role === "direction"}
+              />
+            </div>
+          )}
         </div>
 
         {modifiable ? (

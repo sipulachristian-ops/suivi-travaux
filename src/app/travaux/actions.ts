@@ -4,6 +4,12 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { getProfilConnecte, peutGererTravaux } from "@/lib/auth";
+import {
+  STATUTS_ORDONNES,
+  STATUTS_RESERVES_DIRECTION,
+  STATUT_LABELS,
+  type StatutTravail,
+} from "@/lib/travaux";
 
 export type ActionResult = { error: string } | undefined;
 
@@ -82,4 +88,42 @@ export async function modifierTravail(
   revalidatePath("/travaux");
   revalidatePath(`/travaux/${travailId}`);
   redirect(`/travaux/${travailId}`);
+}
+
+// Change le statut d'un travail (Kanban ou fiche) et journalise le
+// changement dans travaux_historique — via la fonction SQL
+// changer_statut_travail (les deux écritures passent ensemble).
+export async function changerStatutTravail(
+  travailId: string,
+  nouveauStatut: StatutTravail
+): Promise<{ error?: string }> {
+  const profil = await getProfilConnecte();
+  if (!peutGererTravaux(profil.role)) {
+    return { error: "Votre rôle ne permet pas de changer le statut." };
+  }
+  if (!STATUTS_ORDONNES.includes(nouveauStatut)) {
+    return { error: "Statut inconnu." };
+  }
+  if (
+    STATUTS_RESERVES_DIRECTION.includes(nouveauStatut) &&
+    profil.role !== "direction"
+  ) {
+    return {
+      error: `Seule la direction peut passer un travail en « ${STATUT_LABELS[nouveauStatut]} ».`,
+    };
+  }
+
+  const supabase = await createClient();
+  const { error } = await supabase.rpc("changer_statut_travail", {
+    p_travail_id: travailId,
+    p_nouveau_statut: nouveauStatut,
+  });
+
+  if (error) {
+    return { error: "Changement de statut impossible. Réessayez dans un instant." };
+  }
+
+  revalidatePath("/travaux");
+  revalidatePath(`/travaux/${travailId}`);
+  return {};
 }

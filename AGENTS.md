@@ -52,8 +52,10 @@ Vercel. Détails d'infra :
 ## Feuille de route — ne passer à l'étape suivante qu'après validation de Christian
 
 1. ✅ **Fondations** — Next.js, Supabase, Vercel, auth + rôles (terminée le 2026-07-07).
-2. 🔄 **Gestion des travaux** — créer, lister, filtrer ; vue liste (construite le 2026-07-07, en test par Christian).
-3. ⬜ **Vue Kanban** — bascule liste/Kanban par statut.
+2. ✅ **Gestion des travaux** — créer, lister, filtrer ; vue liste (validée par Christian le 2026-07-08).
+3. 🔄 **Vue Kanban** — bascule liste/Kanban, glisser-déposer, historique des
+   statuts (construite le 2026-07-08, en test par Christian — nécessite la
+   migration `0003_historique_statuts.sql`).
 4. ⬜ **Chiffrage manuel** — saisie poste par poste, sans IA.
 5. ⬜ **Workflow de validation** — soumission, validation/refus, versionnage.
 6. ⬜ **Chiffrage IA** — API Claude (texte + photos) + recherche web.
@@ -70,6 +72,13 @@ Vercel. Détails d'infra :
 - 41 sites réels importés depuis `LISTE_DES_SITES_v2.xlsx` (dossier `_KIZEO\_LISTE`
   sur le SharePoint) ; ce fichier contient aussi client et chargé d'affaires
   par site, non exploités pour l'instant.
+- **Changement de statut** (étape 3) : via glisser-déposer du Kanban ou le
+  sélecteur de la fiche. Les statuts « Validé »/« Refusé » sont réservés à la
+  direction (le vrai circuit de validation, avec motif de refus, arrive à
+  l'étape 5). Chaque changement est journalisé dans `travaux_historique`
+  via la fonction SQL `changer_statut_travail` (atomique, RLS appliquée).
+- **Choix de vue** liste/Kanban : paramètre d'URL `?vue=` + cookie
+  `vue_travaux` (mémorise le dernier choix).
 
 ## Règles métier (rappel)
 

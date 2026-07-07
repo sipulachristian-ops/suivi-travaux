@@ -112,7 +112,9 @@ export function FiltresTravaux({
           size="sm"
           onClick={() => {
             setRecherche("");
-            router.replace("/travaux");
+            // On efface les filtres mais on garde la vue (liste/Kanban)
+            const vue = searchParams.get("vue");
+            router.replace(vue ? `/travaux?vue=${vue}` : "/travaux");
           }}
         >
           Effacer les filtres

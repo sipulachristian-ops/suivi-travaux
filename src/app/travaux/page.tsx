@@ -1,8 +1,11 @@
 import Link from "next/link";
+import { cookies } from "next/headers";
 import { createClient } from "@/lib/supabase/server";
 import { getProfilConnecte, peutGererTravaux } from "@/lib/auth";
 import { AppHeader } from "@/components/app-header";
 import { FiltresTravaux } from "./filtres";
+import { BasculeVue } from "./bascule-vue";
+import { KanbanTravaux } from "./kanban";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -30,6 +33,7 @@ type SearchParams = Promise<{
   batiment?: string;
   priorite?: string;
   responsable?: string;
+  vue?: string;
 }>;
 
 export default async function TravauxPage({
@@ -40,6 +44,10 @@ export default async function TravauxPage({
   const profil = await getProfilConnecte();
   const params = await searchParams;
   const supabase = await createClient();
+
+  // Vue choisie : paramètre d'URL d'abord, sinon dernier choix (cookie)
+  const cookieVue = (await cookies()).get("vue_travaux")?.value;
+  const vue = (params.vue ?? cookieVue) === "kanban" ? "kanban" : "liste";
 
   let query = supabase
     .from("travaux")
@@ -81,11 +89,14 @@ export default async function TravauxPage({
               {filtresActifs ? " (filtres actifs)" : ""}
             </p>
           </div>
-          {peutGererTravaux(profil.role) && (
-            <Button render={<Link href="/travaux/nouveau" />}>
-              + Nouveau travail
-            </Button>
-          )}
+          <div className="flex items-center gap-2">
+            <BasculeVue vue={vue} />
+            {peutGererTravaux(profil.role) && (
+              <Button render={<Link href="/travaux/nouveau" />}>
+                + Nouveau travail
+              </Button>
+            )}
+          </div>
         </div>
 
         <FiltresTravaux
@@ -106,6 +117,12 @@ export default async function TravauxPage({
                 : "Créez le premier travail pour démarrer le suivi."}
             </p>
           </div>
+        ) : vue === "kanban" ? (
+          <KanbanTravaux
+            travaux={travaux}
+            peutDeplacer={peutGererTravaux(profil.role)}
+            estDirection={profil.role === "direction"}
+          />
         ) : (
           <>
             {/* Tableau (écran large) */}

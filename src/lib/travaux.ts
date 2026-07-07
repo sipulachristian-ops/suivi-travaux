@@ -10,6 +10,25 @@ export type StatutTravail =
 
 export type PrioriteTravail = "basse" | "normale" | "haute" | "urgente";
 
+// Ordre métier des statuts : c'est aussi l'ordre des colonnes du Kanban.
+export const STATUTS_ORDONNES: StatutTravail[] = [
+  "a_chiffrer",
+  "chiffrage_en_cours",
+  "en_attente_validation",
+  "valide",
+  "refuse",
+  "planifie",
+  "en_cours",
+  "termine",
+];
+
+// Statuts réservés à la direction (règle métier : seule la direction
+// valide ou refuse un chiffrage).
+export const STATUTS_RESERVES_DIRECTION: StatutTravail[] = [
+  "valide",
+  "refuse",
+];
+
 export const STATUT_LABELS: Record<StatutTravail, string> = {
   a_chiffrer: "À chiffrer",
   chiffrage_en_cours: "Chiffrage en cours",
