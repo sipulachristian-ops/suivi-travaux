@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
@@ -48,13 +49,29 @@ export default function LoginPage() {
 
   return (
     <main className="flex flex-1 items-center justify-center px-6 py-16">
-      <Card className="w-full max-w-sm">
-        <CardHeader className="text-center">
-          <CardTitle className="text-2xl">Suivi des travaux</CardTitle>
-          <CardDescription>
-            Connectez-vous avec le compte fourni par votre administrateur.
-          </CardDescription>
-        </CardHeader>
+      <div className="flex w-full max-w-sm flex-col gap-6">
+        <div className="flex items-center justify-center gap-3">
+          <Image
+            src="/logo-jpf.png"
+            alt="JP Facilities"
+            width={266}
+            height={158}
+            priority
+            className="h-10 w-auto"
+          />
+          <span className="text-left text-sm font-medium uppercase leading-tight tracking-[0.18em] text-muted-foreground">
+            JP
+            <br />
+            Facilities
+          </span>
+        </div>
+        <Card className="w-full border-t-4 border-t-primary shadow-md">
+          <CardHeader className="text-center">
+            <CardTitle className="text-2xl">Suivi des travaux</CardTitle>
+            <CardDescription>
+              Connectez-vous avec le compte fourni par votre administrateur.
+            </CardDescription>
+          </CardHeader>
         <CardContent>
           <form onSubmit={handleSubmit} className="flex flex-col gap-5">
             <div className="flex flex-col gap-2">
@@ -85,12 +102,13 @@ export default function LoginPage() {
                 {error}
               </p>
             )}
-            <Button type="submit" size="lg" disabled={loading}>
-              {loading ? "Connexion…" : "Se connecter"}
-            </Button>
-          </form>
-        </CardContent>
-      </Card>
+              <Button type="submit" size="lg" disabled={loading}>
+                {loading ? "Connexion…" : "Se connecter"}
+              </Button>
+            </form>
+          </CardContent>
+        </Card>
+      </div>
     </main>
   );
 }

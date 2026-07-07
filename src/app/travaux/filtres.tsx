@@ -47,7 +47,7 @@ export function FiltresTravaux({
     searchParams.get("responsable");
 
   return (
-    <div className="flex flex-wrap items-center gap-2">
+    <div className="flex flex-wrap items-center gap-2 rounded-xl border bg-card p-2.5 shadow-xs">
       <Input
         placeholder="Rechercher un travail…"
         value={recherche}

@@ -7,11 +7,13 @@ import { cn } from "@/lib/utils";
 import {
   STATUTS_ORDONNES,
   STATUTS_RESERVES_DIRECTION,
+  STATUT_ACCENTS,
   STATUT_LABELS,
   STATUT_STYLES,
   PRIORITE_LABELS,
   PRIORITE_STYLES,
   formatDateFr,
+  estEnRetard,
   type StatutTravail,
   type TravailListe,
 } from "@/lib/travaux";
@@ -100,8 +102,9 @@ export function KanbanTravaux({
               <div
                 key={statut}
                 className={cn(
-                  "flex w-64 shrink-0 flex-col rounded-lg border bg-muted/40",
-                  colonneSurvolee === statut && "border-ring bg-muted"
+                  "flex w-64 shrink-0 flex-col rounded-xl border border-t-[3px] bg-muted/50 shadow-xs",
+                  STATUT_ACCENTS[statut],
+                  colonneSurvolee === statut && "border-ring bg-accent/70"
                 )}
                 onDragOver={(e) => {
                   if (!peutDeplacer) return;
@@ -121,7 +124,7 @@ export function KanbanTravaux({
                   <Badge variant="outline" className={STATUT_STYLES[statut]}>
                     {STATUT_LABELS[statut]}
                   </Badge>
-                  <span className="text-xs text-muted-foreground">
+                  <span className="rounded-full bg-background px-2 py-0.5 text-xs font-medium text-muted-foreground shadow-xs">
                     {cartes.length}
                   </span>
                 </div>
@@ -136,26 +139,36 @@ export function KanbanTravaux({
                         e.dataTransfer.effectAllowed = "move";
                       }}
                       className={cn(
-                        "rounded-md border bg-background p-3 shadow-xs",
+                        "rounded-lg border bg-card p-3 shadow-xs transition-shadow hover:shadow-md",
                         peutDeplacer && "cursor-grab active:cursor-grabbing"
                       )}
                     >
                       <div className="flex items-start justify-between gap-2">
                         <Link
                           href={`/travaux/${t.id}`}
-                          className="text-sm font-medium hover:underline"
+                          className="text-sm font-medium hover:text-primary hover:underline"
                           draggable={false}
                         >
                           {t.titre}
                         </Link>
-                        <span className="shrink-0 text-xs text-muted-foreground">
+                        <span className="shrink-0 font-mono text-xs font-medium text-primary">
                           T-{t.numero}
                         </span>
                       </div>
-                      <p className="mt-1 text-xs text-muted-foreground">
+                      <p
+                        className={cn(
+                          "mt-1 text-xs text-muted-foreground",
+                          estEnRetard(t.echeance, t.statut) &&
+                            "font-medium text-red-600"
+                        )}
+                      >
                         {t.batiment?.nom ?? "—"}
                         {t.echeance
-                          ? ` · échéance ${formatDateFr(t.echeance)}`
+                          ? ` · échéance ${formatDateFr(t.echeance)}${
+                              estEnRetard(t.echeance, t.statut)
+                                ? " (en retard)"
+                                : ""
+                            }`
                           : ""}
                       </p>
                       <div className="mt-2 flex flex-wrap items-center gap-1.5">

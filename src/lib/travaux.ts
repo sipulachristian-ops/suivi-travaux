@@ -66,6 +66,27 @@ export const PRIORITE_STYLES: Record<PrioriteTravail, string> = {
   urgente: "border-red-200 bg-red-50 text-red-700",
 };
 
+// Couleur d'accent de chaque colonne du Kanban (bordure haute)
+export const STATUT_ACCENTS: Record<StatutTravail, string> = {
+  a_chiffrer: "border-t-slate-400",
+  chiffrage_en_cours: "border-t-sky-400",
+  en_attente_validation: "border-t-amber-400",
+  valide: "border-t-green-500",
+  refuse: "border-t-red-400",
+  planifie: "border-t-indigo-400",
+  en_cours: "border-t-blue-500",
+  termine: "border-t-emerald-500",
+};
+
+// Un travail est en retard si son échéance est passée et qu'il n'est pas clos
+export function estEnRetard(
+  echeance: string | null,
+  statut: StatutTravail
+): boolean {
+  if (!echeance || statut === "termine" || statut === "refuse") return false;
+  return new Date(echeance) < new Date(new Date().toDateString());
+}
+
 export function formatDateFr(value: string | null): string {
   if (!value) return "—";
   return new Intl.DateTimeFormat("fr-FR", { dateStyle: "medium" }).format(

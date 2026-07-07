@@ -79,6 +79,13 @@ Vercel. Détails d'infra :
   via la fonction SQL `changer_statut_travail` (atomique, RLS appliquée).
 - **Choix de vue** liste/Kanban : paramètre d'URL `?vue=` + cookie
   `vue_travaux` (mémorise le dernier choix).
+- **Identité visuelle** (retour de Christian le 2026-07-08 : « pas de couleur,
+  pas de logo, tableau pas mis en avant ») : orange JP Facilities **#EC6707**
+  (couleur exacte du logo du site jp-facilities.com) comme `--primary`, base
+  neutre chaude, logo dans `public/logo-jpf.png` (en-tête + connexion),
+  tableau en carte avec zébrures et retards en rouge (`estEnRetard`),
+  colonnes Kanban avec bordure haute colorée (`STATUT_ACCENTS`).
+  Christian est attentif au rendu visuel — soigner chaque nouvel écran.
 
 ## Règles métier (rappel)
 

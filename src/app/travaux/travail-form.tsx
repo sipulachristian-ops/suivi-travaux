@@ -40,7 +40,10 @@ export function TravailForm({
   const [state, formAction, pending] = useActionState(action, undefined);
 
   return (
-    <form action={formAction} className="flex flex-col gap-5">
+    <form
+      action={formAction}
+      className="flex flex-col gap-5 rounded-xl border bg-card p-5 shadow-sm"
+    >
       <div className="flex flex-col gap-2">
         <Label htmlFor="titre">Intitulé *</Label>
         <Input

@@ -98,7 +98,7 @@ export default async function TravailPage({
             lienAnnuler="/travaux"
           />
         ) : (
-          <div className="flex flex-col gap-4 rounded-lg border p-4">
+          <div className="flex flex-col gap-4 rounded-xl border bg-card p-5 shadow-sm">
             <div>
               <p className="text-sm font-medium text-muted-foreground">
                 Description
