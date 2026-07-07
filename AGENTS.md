@@ -3,3 +3,86 @@
 
 This version has breaking changes — APIs, conventions, and file structure may all differ from your training data. Read the relevant guide in `node_modules/next/dist/docs/` before writing any code. Heed deprecation notices.
 <!-- END:nextjs-agent-rules -->
+
+# Suivi des travaux (JP Facilities)
+
+Application web de suivi des travaux de maintenance sur bâtiments :
+création/suivi des travaux, chiffrage assisté par IA, workflow de
+validation par la direction.
+
+## Documents de référence (à consulter en cas de doute)
+
+Dans `C:\Users\Christian.SIPULA\jp-facilities\METHODES - JP FACILITIES - Documents\_DOCUMENTS CLAUDE\_Suivi des travaux\` :
+- `PRD_Suivi_Travaux.md` — le quoi et le pourquoi (v0.2, décisions actées).
+- `Architecture_Technique.md` — le comment (stack, modèle de données).
+- `Technique-PRD.md` — consignes de travail détaillées avec Christian.
+
+## Contexte développeur
+
+Christian développe **seul** et est **non-technique**. Règles d'or :
+- Expliquer sans jargon, avancer par **petites étapes testables**.
+- **Demander avant** : choix structurants, modifications de structure de la
+  base, nouvel outil. Ne jamais inventer une décision non tranchée.
+- **Jamais de secret dans le code** (variables d'environnement uniquement).
+- Recommander une option plutôt que lister des choix à l'aveugle.
+- En début de session : rappeler où on en est, proposer la prochaine action.
+
+## Stack (décidée, ne pas changer sans accord)
+
+Next.js 16 (App Router, TypeScript) · Tailwind v4 + shadcn/ui ·
+Supabase (PostgreSQL + Auth + Storage) · API Claude pour le chiffrage IA ·
+Vercel. Détails d'infra :
+- Le composant Button installé est la variante **Base UI** : liens via
+  `render={<Link … />}`, PAS `asChild`.
+- Next 16 : le middleware s'appelle **`src/proxy.ts`** (session + protection
+  des pages, voir `src/lib/supabase/middleware.ts`).
+- Migrations SQL dans `supabase/migrations/` — **exécutées à la main par
+  Christian** dans le SQL Editor de Supabase (pas de CLI Supabase).
+- Clés locales dans `.env.local` (non versionné) ; en production, variables
+  d'environnement Vercel.
+
+## Déploiement
+
+- GitHub : `sipulachristian-ops/suivi-travaux` (privé). Chaque push sur
+  `main` déploie automatiquement en production.
+- Production : https://suivi-travaux-nu.vercel.app
+- Préview locale : port 3005 (config `suivi-travaux` dans le launch.json du
+  dossier `_PERSO\_CLAUDE`, ou `npm run dev`).
+
+## Feuille de route — ne passer à l'étape suivante qu'après validation de Christian
+
+1. ✅ **Fondations** — Next.js, Supabase, Vercel, auth + rôles (terminée le 2026-07-07).
+2. 🔄 **Gestion des travaux** — créer, lister, filtrer ; vue liste (construite le 2026-07-07, en test par Christian).
+3. ⬜ **Vue Kanban** — bascule liste/Kanban par statut.
+4. ⬜ **Chiffrage manuel** — saisie poste par poste, sans IA.
+5. ⬜ **Workflow de validation** — soumission, validation/refus, versionnage.
+6. ⬜ **Chiffrage IA** — API Claude (texte + photos) + recherche web.
+7. ⬜ **Vue synthétique direction** — tableau de bord.
+8. ⬜ **Notifications + import Excel**.
+
+## Décisions actées en cours de route
+
+- La **direction peut aussi créer des travaux** (en plus du responsable
+  travaux et de l'admin) — tranché par Christian le 2026-07-07.
+- **Priorités** : basse / normale / haute / urgente.
+- Pas de suppression de travaux (clôture par statut « terminé », traçabilité).
+- Compte de test : Christian, rôle `direction` (c.vunzasipula@jp-facilities.com).
+- 41 sites réels importés depuis `LISTE_DES_SITES_v2.xlsx` (dossier `_KIZEO\_LISTE`
+  sur le SharePoint) ; ce fichier contient aussi client et chargé d'affaires
+  par site, non exploités pour l'instant.
+
+## Règles métier (rappel)
+
+- Statuts : À chiffrer → Chiffrage en cours → En attente de validation →
+  Validé (ou Refusé) → Planifié → En cours → Terminé.
+- Seule la direction valide/refuse un chiffrage ; refus motivé.
+- Un chiffrage validé n'est jamais modifié : nouvelle version re-validée.
+- L'IA propose, l'humain dispose ; prix web = pistes sourcées, jamais fermes.
+- Chaque changement d'état : horodaté et attribué (audit).
+
+## Points non tranchés (demander à Christian le moment venu)
+
+- Structure précise de l'import Excel initial des travaux.
+- Niveau de détail du stockage des coûts réels.
+- Indicateurs de succès.
+- Volumétrie des photos par travail.
