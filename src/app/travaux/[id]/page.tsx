@@ -37,6 +37,9 @@ export default async function TravailPage({
     { data: batiments },
     { data: responsables },
     { data: chiffrages, error: erreurChiffrages },
+    // Colonnes de suivi commercial (migration 0008) — requête séparée :
+    // si la migration n'est pas encore exécutée, la fiche reste utilisable.
+    { data: suivi },
   ] = await Promise.all([
     supabase
       .from("travaux")
@@ -54,6 +57,13 @@ export default async function TravailPage({
       )
       .eq("travail_id", id)
       .order("version", { ascending: false }),
+    supabase
+      .from("travaux")
+      .select(
+        "reference_devis, numero_os, montant_os, sous_traitance, nom_sous_traitant, commande_sous_traitance, commande_materiel, rapport_intervention, cat, facturation"
+      )
+      .eq("id", id)
+      .single(),
   ]);
 
   if (!travail) {
@@ -87,6 +97,43 @@ export default async function TravailPage({
     !brouillonExiste &&
     !soumissionEnAttente &&
     !erreurChiffrages;
+
+  // Champs de suivi commercial remplis (import Excel) — la carte
+  // n'apparaît que s'il y a quelque chose à montrer.
+  const champsSuivi: { libelle: string; valeur: string }[] = suivi
+    ? [
+        { libelle: "N° de devis", valeur: suivi.reference_devis || "" },
+        { libelle: "N° d'ordre de service", valeur: suivi.numero_os || "" },
+        {
+          libelle: "Montant OS HT",
+          valeur:
+            suivi.montant_os === null || suivi.montant_os === undefined
+              ? ""
+              : formatEuros(Number(suivi.montant_os)),
+        },
+        {
+          libelle: "Sous-traitance",
+          valeur:
+            suivi.sous_traitance === null || suivi.sous_traitance === undefined
+              ? ""
+              : suivi.sous_traitance
+                ? "Oui"
+                : "Non",
+        },
+        { libelle: "Sous-traitant", valeur: suivi.nom_sous_traitant || "" },
+        {
+          libelle: "Commande sous-traitance",
+          valeur: suivi.commande_sous_traitance || "",
+        },
+        { libelle: "Commande matériel", valeur: suivi.commande_materiel || "" },
+        {
+          libelle: "Rapport d'intervention",
+          valeur: suivi.rapport_intervention || "",
+        },
+        { libelle: "CAT", valeur: suivi.cat || "" },
+        { libelle: "Facturation", valeur: suivi.facturation || "" },
+      ].filter((c) => c.valeur !== "")
+    : [];
 
   return (
     <div className="flex flex-1 flex-col">
@@ -165,6 +212,22 @@ export default async function TravailPage({
               </div>
             </div>
           </div>
+        )}
+
+        {champsSuivi.length > 0 && (
+          <section className="flex flex-col gap-3 rounded-xl border bg-card p-5 shadow-sm">
+            <h2 className="text-base font-semibold">Suivi commercial</h2>
+            <div className="grid gap-x-6 gap-y-3 sm:grid-cols-2">
+              {champsSuivi.map((c) => (
+                <div key={c.libelle}>
+                  <p className="text-sm font-medium text-muted-foreground">
+                    {c.libelle}
+                  </p>
+                  <p>{c.valeur}</p>
+                </div>
+              ))}
+            </div>
+          </section>
         )}
 
         <section className="flex flex-col gap-3 rounded-xl border bg-card p-5 shadow-sm">

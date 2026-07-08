@@ -65,9 +65,11 @@ Vercel. Détails d'infra :
    Christian le 2026-07-08 — « étape 7 »).
 7. 🔶 **Notifications + import Excel** — notifications construites le
    2026-07-08 (cloche + e-mails, migration 0007 **à exécuter par
-   Christian**, en test) ; import Excel ⬜ à faire (il faut d'abord le
-   fichier Excel de suivi actuel de Christian pour cartographier les
-   colonnes).
+   Christian**, en test) ; import Excel en cours : fichier
+   `CMT SUIVI P5.xlsx` analysé, décisions actées (voir plus bas),
+   colonnes de suivi commercial ajoutées (migration 0008 **à exécuter**),
+   **en attente du tri des sites par Christian**
+   (`TRI_SITES_IMPORT.xlsx`) avant de générer la migration d'import.
 8. 🔶 **Chiffrage IA** — API Claude (texte + photos) + recherche web.
    **Reportée en fin de feuille de route par Christian le 2026-07-08**
    (pas encore de clé API Anthropic). Découpée en trois sous-étapes :
@@ -184,6 +186,34 @@ Vercel. Détails d'infra :
   peut écrire qu'à l'adresse du compte Resend — domaine
   jp-facilities.com à vérifier chez Resend pour un usage réel),
   base des liens `NEXT_PUBLIC_SITE_URL` (défaut : l'URL Vercel).
+
+- **Import Excel** (étape 7, décisions actées par Christian le
+  2026-07-08) : source = `CMT SUIVI P5.xlsx` (même dossier SharePoint
+  que les documents de référence) — 107 lignes, 1 ligne = 1 devis
+  (n° DE0000xxxx, site, prestation, montant HT ; colonnes éparses :
+  OS, sous-traitance, rapport, CAT, facturation ; « Intervenants JPF »
+  vide, dates inexploitables). Décisions :
+  1. **Montant HT → chiffrage validé** à 1 poste forfait par demande
+     importée (alimente le budget engagé du tableau de bord).
+  2. **Statuts — règle automatique** : « Réalisé » → Terminé,
+     « En cours de programmation » → Planifié, sinon → Validé.
+  3. **Colonnes dédiées** (choix de Christian, PAS la description) :
+     migration `0008_suivi_commercial.sql` ajoute sur `travaux` :
+     `reference_devis`, `numero_os`, `montant_os`, `sous_traitance`
+     (bool, null = non renseigné), `nom_sous_traitant`,
+     `commande_sous_traitance`, `commande_materiel`,
+     `rapport_intervention`, `cat`, `facturation`. Affichées sur la
+     fiche dans une carte « Suivi commercial » (visible seulement si
+     renseignées ; requête séparée, tolérante si la 0008 manque).
+     Pas encore modifiables dans le formulaire — à voir avec Christian.
+  4. **Sites : Christian trie lui-même** — la colonne « Site » du
+     fichier est plutôt le client (49 valeurs, 0 correspondance exacte
+     avec les 41 bâtiments, 35 inconnues, 2 lignes internes
+     consommables/outillage à écarter). Fichier de tri généré :
+     `TRI_SITES_IMPORT.xlsx` (même dossier SharePoint) — 1 ligne par
+     site, listes déroulantes Créer / Rapprocher / Écarter +
+     rapprochements pré-remplis. Quand Christian le rend : générer la
+     migration d'import (0009) à partir de CMT SUIVI P5.xlsx + le tri.
 
 ## Règles métier (rappel)
 
