@@ -9,6 +9,7 @@ import {
   peutValiderChiffrage,
 } from "@/lib/auth";
 import { UNITES, type LigneSaisie } from "@/lib/chiffrages";
+import { envoyerEmailNotification } from "@/lib/email";
 
 // Crée un chiffrage (version suivante) pour un travail, via la fonction
 // SQL creer_chiffrage : numéro de version + passage éventuel du travail
@@ -170,6 +171,39 @@ export async function soumettreChiffrage(
     return { error: messageErreurWorkflow(error, "Soumission") };
   }
 
+  // E-mail à la direction (en plus de la notification dans l'app).
+  // Toute erreur ici est ignorée : l'e-mail ne bloque jamais le workflow.
+  try {
+    const [travailRes, directionRes] = await Promise.all([
+      supabase
+        .from("travaux")
+        .select("numero, titre")
+        .eq("id", travailId)
+        .single(),
+      supabase
+        .from("profiles")
+        .select("email")
+        .eq("role", "direction")
+        .neq("id", profil.id)
+        .neq("email", ""),
+    ]);
+
+    const travail = travailRes.data;
+    const emails = (directionRes.data ?? []).map((p) => p.email);
+    if (travail && emails.length > 0) {
+      await envoyerEmailNotification({
+        to: emails,
+        sujet: `Chiffrage à valider — T-${travail.numero} ${travail.titre}`,
+        titre: "Un chiffrage attend votre validation",
+        corps: `${profil.fullName} a soumis un chiffrage pour la demande T-${travail.numero} — ${travail.titre}.`,
+        lien: `/travaux/${travailId}/chiffrages/${chiffrageId}`,
+        lienTexte: "Voir le chiffrage",
+      });
+    }
+  } catch (erreur) {
+    console.error("E-mail de soumission non envoyé :", erreur);
+  }
+
   revalidatePath("/travaux");
   revalidatePath(`/travaux/${travailId}`);
   revalidatePath(`/travaux/${travailId}/chiffrages/${chiffrageId}`);
@@ -207,6 +241,47 @@ export async function deciderChiffrage(
 
   if (error) {
     return { error: messageErreurWorkflow(error, "Décision") };
+  }
+
+  // E-mail à la personne qui a soumis (en plus de la notification).
+  // Toute erreur ici est ignorée : l'e-mail ne bloque jamais le workflow.
+  try {
+    const [travailRes, chiffrageRes] = await Promise.all([
+      supabase
+        .from("travaux")
+        .select("numero, titre")
+        .eq("id", travailId)
+        .single(),
+      supabase
+        .from("chiffrages")
+        .select("soumis_par, auteur_soumission:profiles!chiffrages_soumis_par_fkey(email)")
+        .eq("id", chiffrageId)
+        .single(),
+    ]);
+
+    const travail = travailRes.data;
+    const soumisPar = chiffrageRes.data?.soumis_par as string | null;
+    const email = (
+      chiffrageRes.data?.auteur_soumission as { email?: string } | null
+    )?.email;
+
+    if (travail && email && soumisPar && soumisPar !== profil.id) {
+      const validee = decision === "valide";
+      await envoyerEmailNotification({
+        to: [email],
+        sujet: `Chiffrage ${validee ? "validé" : "refusé"} — T-${travail.numero} ${travail.titre}`,
+        titre: validee
+          ? "Votre chiffrage a été validé"
+          : "Votre chiffrage a été refusé",
+        corps: validee
+          ? `La direction a validé votre chiffrage pour la demande T-${travail.numero} — ${travail.titre}.`
+          : `La direction a refusé votre chiffrage pour la demande T-${travail.numero} — ${travail.titre}. Motif : ${motifPropre}`,
+        lien: `/travaux/${travailId}/chiffrages/${chiffrageId}`,
+        lienTexte: "Voir la décision",
+      });
+    }
+  } catch (erreur) {
+    console.error("E-mail de décision non envoyé :", erreur);
   }
 
   revalidatePath("/travaux");

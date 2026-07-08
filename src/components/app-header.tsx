@@ -4,6 +4,8 @@ import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { Button } from "@/components/ui/button";
 import { ROLE_LABELS, type UserRole } from "@/lib/roles";
+import { getAlertes } from "@/lib/notifications-server";
+import { NotificationsCloche } from "@/components/notifications-cloche";
 
 async function signOut() {
   "use server";
@@ -12,13 +14,15 @@ async function signOut() {
   redirect("/login");
 }
 
-export function AppHeader({
+export async function AppHeader({
   fullName,
   role,
 }: {
   fullName: string;
   role: UserRole;
 }) {
+  const alertes = await getAlertes(role);
+
   return (
     <header className="sticky top-0 z-10 border-b bg-card shadow-xs">
       {/* Liseré aux couleurs JP Facilities */}
@@ -60,6 +64,12 @@ export function AppHeader({
           </nav>
         </div>
         <div className="flex items-center gap-3">
+          <NotificationsCloche
+            notifications={alertes.notifications}
+            nonLues={alertes.nonLues}
+            echeances={alertes.echeances}
+            migrationManquante={alertes.migrationManquante}
+          />
           <div className="hidden text-right sm:block">
             <p className="text-sm font-medium leading-tight">{fullName}</p>
             <p className="text-xs text-accent-foreground">{ROLE_LABELS[role]}</p>

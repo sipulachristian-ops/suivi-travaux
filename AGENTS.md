@@ -61,9 +61,13 @@ Vercel. Détails d'infra :
 5. ✅ **Workflow de validation** — soumission, validation/refus motivé,
    versionnage (validée par Christian le 2026-07-08, migration 0006
    exécutée).
-6. 🔶 **Vue synthétique direction** — tableau de bord (construite le
-   2026-07-08, en test chez Christian).
-7. ⬜ **Notifications + import Excel**.
+6. ✅ **Vue synthétique direction** — tableau de bord (validée par
+   Christian le 2026-07-08 — « étape 7 »).
+7. 🔶 **Notifications + import Excel** — notifications construites le
+   2026-07-08 (cloche + e-mails, migration 0007 **à exécuter par
+   Christian**, en test) ; import Excel ⬜ à faire (il faut d'abord le
+   fichier Excel de suivi actuel de Christian pour cartographier les
+   colonnes).
 8. 🔶 **Chiffrage IA** — API Claude (texte + photos) + recherche web.
    **Reportée en fin de feuille de route par Christian le 2026-07-08**
    (pas encore de clé API Anthropic). Découpée en trois sous-étapes :
@@ -156,6 +160,30 @@ Vercel. Détails d'infra :
   **Budget engagé** = somme de la dernière version validée de chaque
   travail (les anciennes versions validées ne comptent pas deux fois).
   Aucune migration : uniquement des lectures.
+
+- **Notifications** (étape 7, construites le 2026-07-08, migration
+  `0007_notifications.sql`) : Christian a choisi **dans l'app + e-mail**.
+  Table `notifications` (RLS : chacun ne lit que les siennes ; écrites
+  uniquement par les fonctions SQL), `soumettre_chiffrage` notifie
+  chaque membre de la direction, `decider_chiffrage` notifie la personne
+  qui a soumis (motif inclus en cas de refus). Marquage lu via la
+  fonction `marquer_notifications_lues` (toutes ou une liste). La
+  migration ajoute aussi **`email` dans `profiles`** (copié depuis le
+  compte de connexion, trigger mis à jour) — servira aussi à la future
+  liste des utilisateurs. UI : **cloche dans l'en-tête**
+  (`notifications-cloche.tsx`, données via `lib/notifications-server.ts`)
+  avec compteur, marquage lu au clic, et section « Échéances à
+  surveiller » **calculée en direct** (échéance dépassée ou sous 7
+  jours, rôles gestion travaux : direction, responsable travaux, admin
+  — pas de stockage, pas de cron). Tolérant si la migration 0007
+  manque. **E-mails via Resend** (appel HTTP direct, pas de dépendance,
+  `lib/email.ts`) : envoyés après soumission (à la direction) et après
+  décision (au soumetteur), jamais bloquants ; actifs dès que
+  `RESEND_API_KEY` existe (.env.local + Vercel), expéditeur
+  `EMAIL_FROM` (défaut : adresse de test onboarding@resend.dev, qui ne
+  peut écrire qu'à l'adresse du compte Resend — domaine
+  jp-facilities.com à vérifier chez Resend pour un usage réel),
+  base des liens `NEXT_PUBLIC_SITE_URL` (défaut : l'URL Vercel).
 
 ## Règles métier (rappel)
 
