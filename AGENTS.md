@@ -114,6 +114,17 @@ Vercel. Détails d'infra :
 - L'IA propose, l'humain dispose ; prix web = pistes sourcées, jamais fermes.
 - Chaque changement d'état : horodaté et attribué (audit).
 
+## Remarques de Christian en attente (données le 2026-07-08, à traiter plus tard — pas tout de suite)
+
+Sur l'écran de chiffrage / le tableau des postes :
+
+- Afficher la **date de création** (manquante à ses yeux — préciser où exactement le moment venu).
+- **Terminologie : on ne dit pas « travail »** — il parle de « demande » (à confirmer : quel terme exact partout dans l'app ?).
+- Afficher le **n° de la demande et son id**.
+- Un bouton **« Import »** pour ajouter des lignes (postes) en masse.
+- Pouvoir **cocher des lignes** (cases à cocher — usage à préciser : suppression multiple ? sélection ?).
+- Tableau avec des **bordures visibles gris clair**.
+
 ## Points non tranchés (demander à Christian le moment venu)
 
 - Structure précise de l'import Excel initial des travaux.
