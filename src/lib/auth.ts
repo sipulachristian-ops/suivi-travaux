@@ -45,3 +45,16 @@ export const ROLES_GESTION_TRAVAUX: UserRole[] = [
 export function peutGererTravaux(role: UserRole): boolean {
   return ROLES_GESTION_TRAVAUX.includes(role);
 }
+
+// Rôles autorisés à créer et modifier un chiffrage (décision actée le
+// 2026-07-08 : la direction chiffre aussi, en plus du responsable
+// d'affaires et de l'admin).
+export const ROLES_CHIFFRAGE: UserRole[] = [
+  "direction",
+  "responsable_affaires",
+  "admin",
+];
+
+export function peutChiffrer(role: UserRole): boolean {
+  return ROLES_CHIFFRAGE.includes(role);
+}

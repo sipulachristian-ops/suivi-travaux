@@ -53,10 +53,11 @@ Vercel. Détails d'infra :
 
 1. ✅ **Fondations** — Next.js, Supabase, Vercel, auth + rôles (terminée le 2026-07-07).
 2. ✅ **Gestion des travaux** — créer, lister, filtrer ; vue liste (validée par Christian le 2026-07-08).
-3. 🔄 **Vue Kanban** — bascule liste/Kanban, glisser-déposer, historique des
-   statuts (construite le 2026-07-08, en test par Christian — nécessite la
-   migration `0003_historique_statuts.sql`).
-4. ⬜ **Chiffrage manuel** — saisie poste par poste, sans IA.
+3. ✅ **Vue Kanban** — bascule liste/Kanban, glisser-déposer, historique des
+   statuts (validée par Christian le 2026-07-08, migration 0003 exécutée).
+4. 🔄 **Chiffrage manuel** — saisie poste par poste, sans IA (construite le
+   2026-07-08, en test par Christian — nécessite la migration
+   `0004_chiffrages.sql`).
 5. ⬜ **Workflow de validation** — soumission, validation/refus, versionnage.
 6. ⬜ **Chiffrage IA** — API Claude (texte + photos) + recherche web.
 7. ⬜ **Vue synthétique direction** — tableau de bord.
@@ -86,6 +87,20 @@ Vercel. Détails d'infra :
   tableau en carte avec zébrures et retards en rouge (`estEnRetard`),
   colonnes Kanban avec bordure haute colorée (`STATUT_ACCENTS`).
   Christian est attentif au rendu visuel — soigner chaque nouvel écran.
+
+- **Chiffrage manuel** (étape 4, décisions actées par Christian le
+  2026-07-08) : la **direction peut aussi chiffrer** (en plus du responsable
+  d'affaires et de l'admin — pratique : son compte de test est direction) ;
+  une ligne (poste) = **libellé + montant (€) + heures**, totaux calculés.
+  Tables `chiffrages` (versionnées, statut `brouillon`/`soumis`/`valide`/
+  `refuse` — seule `brouillon` sert à l'étape 4) et `chiffrage_lignes`
+  (migration `0004_chiffrages.sql`). Création uniquement via la fonction SQL
+  `creer_chiffrage` (security definer : version + passage automatique
+  « À chiffrer » → « Chiffrage en cours » journalisé) ; un seul brouillon à
+  la fois par travail ; postes enregistrés en bloc via
+  `remplacer_lignes_chiffrage` (atomique, RLS : rôles autorisés + brouillon).
+  Page : `/travaux/[id]/chiffrages/[chiffrageId]`. La soumission à
+  validation arrive à l'étape 5.
 
 ## Règles métier (rappel)
 

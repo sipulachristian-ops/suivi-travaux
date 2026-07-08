@@ -1,18 +1,27 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
-import { getProfilConnecte, peutGererTravaux } from "@/lib/auth";
+import { getProfilConnecte, peutChiffrer, peutGererTravaux } from "@/lib/auth";
 import { AppHeader } from "@/components/app-header";
 import { Badge } from "@/components/ui/badge";
 import { TravailForm } from "../travail-form";
 import { ChangerStatut } from "../changer-statut";
 import { modifierTravail } from "../actions";
+import { CreerChiffrageBouton } from "./chiffrages/creer-chiffrage-bouton";
 import {
   STATUT_LABELS,
   STATUT_STYLES,
   formatDateFr,
   type StatutTravail,
 } from "@/lib/travaux";
+import {
+  STATUT_CHIFFRAGE_LABELS,
+  STATUT_CHIFFRAGE_STYLES,
+  formatEuros,
+  formatHeures,
+  totauxLignes,
+  type StatutChiffrage,
+} from "@/lib/chiffrages";
 
 export default async function TravailPage({
   params,
@@ -23,18 +32,29 @@ export default async function TravailPage({
   const { id } = await params;
   const supabase = await createClient();
 
-  const [{ data: travail }, { data: batiments }, { data: responsables }] =
-    await Promise.all([
-      supabase
-        .from("travaux")
-        .select(
-          "id, numero, titre, nature, description, batiment_id, priorite, statut, echeance, responsable_id, created_at, updated_at, createur:profiles!travaux_cree_par_fkey(full_name)"
-        )
-        .eq("id", id)
-        .single(),
-      supabase.from("batiments").select("id, nom").eq("actif", true).order("nom"),
-      supabase.from("profiles").select("id, full_name").order("full_name"),
-    ]);
+  const [
+    { data: travail },
+    { data: batiments },
+    { data: responsables },
+    { data: chiffrages, error: erreurChiffrages },
+  ] = await Promise.all([
+    supabase
+      .from("travaux")
+      .select(
+        "id, numero, titre, nature, description, batiment_id, priorite, statut, echeance, responsable_id, created_at, updated_at, createur:profiles!travaux_cree_par_fkey(full_name)"
+      )
+      .eq("id", id)
+      .single(),
+    supabase.from("batiments").select("id, nom").eq("actif", true).order("nom"),
+    supabase.from("profiles").select("id, full_name").order("full_name"),
+    supabase
+      .from("chiffrages")
+      .select(
+        "id, version, statut, created_at, auteur:profiles!chiffrages_auteur_fkey(full_name), lignes:chiffrage_lignes(montant, heures)"
+      )
+      .eq("travail_id", id)
+      .order("version", { ascending: false }),
+  ]);
 
   if (!travail) {
     notFound();
@@ -44,6 +64,21 @@ export default async function TravailPage({
   const createur = travail.createur as unknown as { full_name: string } | null;
   const modifiable = peutGererTravaux(profil.role);
   const actionModifier = modifierTravail.bind(null, travail.id);
+
+  // erreurChiffrages : la migration 0004 n'a pas encore été exécutée —
+  // la fiche reste utilisable, la section chiffrage l'indique simplement.
+  const listeChiffrages = (chiffrages ?? []).map((c) => ({
+    id: c.id,
+    version: c.version as number,
+    statut: c.statut as StatutChiffrage,
+    created_at: c.created_at as string,
+    auteur: (c.auteur as unknown as { full_name: string } | null)?.full_name,
+    nbPostes: (c.lignes ?? []).length,
+    totaux: totauxLignes(c.lignes ?? []),
+  }));
+  const brouillonExiste = listeChiffrages.some((c) => c.statut === "brouillon");
+  const peutCreerChiffrage =
+    peutChiffrer(profil.role) && !brouillonExiste && !erreurChiffrages;
 
   return (
     <div className="flex flex-1 flex-col">
@@ -123,6 +158,52 @@ export default async function TravailPage({
             </div>
           </div>
         )}
+
+        <section className="flex flex-col gap-3 rounded-xl border bg-card p-5 shadow-sm">
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <h2 className="text-base font-semibold">Chiffrage</h2>
+            {peutCreerChiffrage && <CreerChiffrageBouton travailId={travail.id} />}
+          </div>
+
+          {erreurChiffrages ? (
+            <p className="text-sm text-muted-foreground">
+              Le module de chiffrage sera disponible une fois la migration
+              0004 exécutée dans Supabase.
+            </p>
+          ) : listeChiffrages.length === 0 ? (
+            <p className="text-sm text-muted-foreground">
+              Aucun chiffrage pour l&apos;instant.
+            </p>
+          ) : (
+            <div className="flex flex-col">
+              {listeChiffrages.map((c) => (
+                <Link
+                  key={c.id}
+                  href={`/travaux/${travail.id}/chiffrages/${c.id}`}
+                  className="flex flex-wrap items-center gap-x-3 gap-y-1 border-t py-3 first:border-t-0 first:pt-0 last:pb-0 hover:bg-muted/50"
+                >
+                  <span className="text-sm font-medium">
+                    Version {c.version}
+                  </span>
+                  <Badge
+                    variant="outline"
+                    className={STATUT_CHIFFRAGE_STYLES[c.statut]}
+                  >
+                    {STATUT_CHIFFRAGE_LABELS[c.statut]}
+                  </Badge>
+                  <span className="text-sm text-muted-foreground">
+                    {c.nbPostes === 0
+                      ? "Aucun poste"
+                      : `${c.nbPostes} poste${c.nbPostes > 1 ? "s" : ""} · ${formatEuros(c.totaux.montant)} · ${formatHeures(c.totaux.heures)}`}
+                  </span>
+                  <span className="ml-auto text-sm text-muted-foreground">
+                    par {c.auteur || "?"} le {formatDateFr(c.created_at)} →
+                  </span>
+                </Link>
+              ))}
+            </div>
+          )}
+        </section>
       </main>
     </div>
   );
