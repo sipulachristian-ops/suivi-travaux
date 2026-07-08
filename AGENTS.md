@@ -38,6 +38,12 @@ Vercel. Détails d'infra :
   des pages, voir `src/lib/supabase/middleware.ts`).
 - Migrations SQL dans `supabase/migrations/` — **exécutées à la main par
   Christian** dans le SQL Editor de Supabase (pas de CLI Supabase).
+  ⚠️ Leçon du 2026-07-08 : **ne jamais modifier une migration déjà
+  exécutée** (la 0002 avait été enrichie des 41 sites réels APRÈS son
+  exécution → la production est restée avec les bâtiments d'exemple
+  A/B/C jusqu'à la migration de rattrapage 0009). Toujours créer une
+  nouvelle migration, et vérifier l'état réel de la base via l'API REST
+  plutôt que de se fier aux fichiers.
 - Clés locales dans `.env.local` (non versionné) ; en production, variables
   d'environnement Vercel.
 
@@ -213,7 +219,12 @@ Vercel. Détails d'infra :
      `TRI_SITES_IMPORT.xlsx` (même dossier SharePoint) — 1 ligne par
      site, listes déroulantes Créer / Rapprocher / Écarter +
      rapprochements pré-remplis. Quand Christian le rend : générer la
-     migration d'import (0009) à partir de CMT SUIVI P5.xlsx + le tri.
+     migration d'import (0010) à partir de CMT SUIVI P5.xlsx + le tri.
+  5. **Rattrapage sites** : la production n'avait jamais reçu les 41
+     sites réels (voir la leçon plus haut) — migration
+     `0009_rattrapage_sites_reels.sql` (insertion sans doublon +
+     désactivation des bâtiments d'exemple A/B/C), **à exécuter avant
+     l'import**.
 
 ## Règles métier (rappel)
 
