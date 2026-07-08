@@ -36,7 +36,12 @@ export async function creerChiffrage(
           "La base de données n'est pas encore prête (migration 0004). Si vous venez de l'exécuter, attendez quelques secondes puis réessayez.",
       };
     }
-    return { error: "Création du chiffrage impossible. Réessayez dans un instant." };
+    console.error("creer_chiffrage :", error);
+    return {
+      error: `Création du chiffrage impossible (détail technique : ${
+        error ? `${error.code ?? "?"} — ${error.message}` : "réponse vide"
+      }).`,
+    };
   }
 
   revalidatePath("/travaux");
