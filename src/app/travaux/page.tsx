@@ -218,9 +218,12 @@ export default async function TravauxPage({
                       >
                         T-{t.numero}
                       </TableCell>
+                      {/* whitespace-normal : les intitulés longs
+                          s'enroulent dans la colonne figée au lieu de
+                          déborder sur les colonnes qui défilent */}
                       <TableCell
                         className={cn(
-                          "sticky left-16 z-[5] min-w-72 max-w-96 border-r bg-card",
+                          "sticky left-16 z-[5] min-w-72 max-w-96 whitespace-normal break-words border-r bg-card",
                           FOND_ZEBRE,
                           FOND_SURVOL
                         )}
