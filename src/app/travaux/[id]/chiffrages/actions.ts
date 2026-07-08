@@ -23,10 +23,20 @@ export async function creerChiffrage(
   });
 
   if (error || !data) {
-    return {
-      error:
-        "Création du chiffrage impossible. Vérifiez qu'aucun brouillon n'existe déjà, puis réessayez.",
-    };
+    // P0001 : message levé par la fonction SQL elle-même (déjà en clair,
+    // ex. « Un chiffrage en brouillon existe déjà pour ce travail. »)
+    if (error?.code === "P0001") {
+      return { error: error.message };
+    }
+    // PGRST2xx : l'API Supabase ne connaît pas (encore) la fonction —
+    // migration 0004 pas exécutée, ou cache pas encore rafraîchi.
+    if (error?.code?.startsWith("PGRST")) {
+      return {
+        error:
+          "La base de données n'est pas encore prête (migration 0004). Si vous venez de l'exécuter, attendez quelques secondes puis réessayez.",
+      };
+    }
+    return { error: "Création du chiffrage impossible. Réessayez dans un instant." };
   }
 
   revalidatePath("/travaux");

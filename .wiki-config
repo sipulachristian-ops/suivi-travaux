@@ -1,0 +1,4 @@
+role = "project-pointer"
+wiki = "./wiki"
+created = "2026-07-08"
+fork_to_main = false
