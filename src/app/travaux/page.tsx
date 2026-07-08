@@ -30,16 +30,12 @@ import { cn } from "@/lib/utils";
 
 export const dynamic = "force-dynamic";
 
-// Volets figés « comme Excel » : les cellules collantes (en-tête et
-// colonnes N° / Intitulé) doivent être OPAQUES pour que le contenu ne
-// transparaisse pas en défilant. Les couleurs translucides du tableau
-// (zébrures, survol) sont recomposées ici en couleurs pleines.
+// Seule la ligne d'en-tête est figée (choix de Christian après essai
+// des colonnes figées). La cellule collante doit être OPAQUE pour que
+// les lignes ne transparaissent pas dessous en défilant : la couleur
+// translucide d'origine est recomposée en couleur pleine.
 const FOND_ENTETE =
   "bg-[color-mix(in_oklab,var(--muted)_60%,var(--card))]";
-const FOND_ZEBRE =
-  "group-odd:bg-[color-mix(in_oklab,var(--muted)_25%,var(--card))]";
-const FOND_SURVOL =
-  "group-hover:bg-[color-mix(in_oklab,var(--accent)_60%,var(--card))]";
 
 type SearchParams = Promise<{
   q?: string;
@@ -145,27 +141,16 @@ export default async function TravauxPage({
           />
         ) : (
           <>
-            {/* Tableau (écran large) — volets figés comme Excel :
-                en-tête collé en haut, N° + Intitulé collés à gauche,
-                défilement vertical et horizontal à la molette */}
+            {/* Tableau (écran large) — l'en-tête reste figé en haut,
+                le tableau défile verticalement et horizontalement */}
             <div className="hidden overflow-hidden rounded-xl border bg-card shadow-sm md:block [&_[data-slot=table-container]]:max-h-[calc(100dvh-14rem)] [&_[data-slot=table-container]]:overflow-y-auto">
               <Table>
                 <TableHeader className="sticky top-0 z-20">
                   <TableRow className={cn("hover:bg-transparent", FOND_ENTETE)}>
-                    <TableHead
-                      className={cn(
-                        "sticky left-0 z-10 w-16 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground",
-                        FOND_ENTETE
-                      )}
-                    >
+                    <TableHead className="w-16 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
                       N°
                     </TableHead>
-                    <TableHead
-                      className={cn(
-                        "sticky left-16 z-10 border-r text-[11px] font-semibold uppercase tracking-wider text-muted-foreground",
-                        FOND_ENTETE
-                      )}
-                    >
+                    <TableHead className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
                       Intitulé
                     </TableHead>
                     <TableHead className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
@@ -207,27 +192,14 @@ export default async function TravauxPage({
                   {travaux.map((t) => (
                     <TableRow
                       key={t.id}
-                      className="group odd:bg-muted/25 hover:bg-accent/60"
+                      className="odd:bg-muted/25 hover:bg-accent/60"
                     >
-                      <TableCell
-                        className={cn(
-                          "sticky left-0 z-[5] w-16 bg-card font-mono text-xs font-medium text-primary",
-                          FOND_ZEBRE,
-                          FOND_SURVOL
-                        )}
-                      >
+                      <TableCell className="w-16 font-mono text-xs font-medium text-primary">
                         T-{t.numero}
                       </TableCell>
                       {/* whitespace-normal : les intitulés longs
-                          s'enroulent dans la colonne figée au lieu de
-                          déborder sur les colonnes qui défilent */}
-                      <TableCell
-                        className={cn(
-                          "sticky left-16 z-[5] min-w-72 max-w-96 whitespace-normal break-words border-r bg-card",
-                          FOND_ZEBRE,
-                          FOND_SURVOL
-                        )}
-                      >
+                          s'enroulent au lieu d'élargir la colonne */}
+                      <TableCell className="min-w-72 max-w-96 whitespace-normal break-words">
                         <Link
                           href={`/travaux/${t.id}`}
                           className="font-medium hover:text-primary hover:underline"
