@@ -24,24 +24,41 @@ export function AppHeader({
       {/* Liseré aux couleurs JP Facilities */}
       <div className="h-0.5 bg-primary" />
       <div className="mx-auto flex w-full max-w-6xl items-center justify-between gap-4 px-4 py-2.5 sm:px-6">
-        <Link href="/travaux" className="flex items-center gap-3">
-          <Image
-            src="/logo-jpf.png"
-            alt="JP Facilities"
-            width={266}
-            height={158}
-            priority
-            className="h-7 w-auto"
-          />
-          <span className="flex flex-col leading-tight">
-            <span className="font-semibold tracking-tight">
-              Suivi des travaux
+        <div className="flex items-center gap-4 sm:gap-6">
+          <Link href="/travaux" className="flex items-center gap-3">
+            <Image
+              src="/logo-jpf.png"
+              alt="JP Facilities"
+              width={266}
+              height={158}
+              priority
+              className="h-7 w-auto"
+            />
+            {/* Sur mobile, le texte cède la place aux liens de navigation */}
+            <span className="hidden flex-col leading-tight sm:flex">
+              <span className="font-semibold tracking-tight">
+                Suivi des travaux
+              </span>
+              <span className="text-[10px] font-medium uppercase tracking-[0.18em] text-muted-foreground">
+                JP Facilities
+              </span>
             </span>
-            <span className="text-[10px] font-medium uppercase tracking-[0.18em] text-muted-foreground">
-              JP Facilities
-            </span>
-          </span>
-        </Link>
+          </Link>
+          <nav className="flex items-center gap-1 text-sm">
+            <Link
+              href="/tableau-de-bord"
+              className="rounded-md px-2.5 py-1.5 font-medium text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
+            >
+              Tableau de bord
+            </Link>
+            <Link
+              href="/travaux"
+              className="rounded-md px-2.5 py-1.5 font-medium text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
+            >
+              Travaux
+            </Link>
+          </nav>
+        </div>
         <div className="flex items-center gap-3">
           <div className="hidden text-right sm:block">
             <p className="text-sm font-medium leading-tight">{fullName}</p>

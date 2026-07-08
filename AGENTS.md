@@ -61,12 +61,15 @@ Vercel. Détails d'infra :
 5. ✅ **Workflow de validation** — soumission, validation/refus motivé,
    versionnage (validée par Christian le 2026-07-08, migration 0006
    exécutée).
-6. 🔶 **Chiffrage IA** — API Claude (texte + photos) + recherche web.
-   Découpée en trois sous-étapes (actées par Christian le 2026-07-08) :
-   6a ✅ construite (proposition à partir du texte — en test), 6b ⬜ photos,
-   6c ⬜ recherche web de prix.
-7. ⬜ **Vue synthétique direction** — tableau de bord.
-8. ⬜ **Notifications + import Excel**.
+6. 🔶 **Vue synthétique direction** — tableau de bord (construite le
+   2026-07-08, en test chez Christian).
+7. ⬜ **Notifications + import Excel**.
+8. 🔶 **Chiffrage IA** — API Claude (texte + photos) + recherche web.
+   **Reportée en fin de feuille de route par Christian le 2026-07-08**
+   (pas encore de clé API Anthropic). Découpée en trois sous-étapes :
+   6a ✅ construite (proposition à partir du texte — le bouton affiche un
+   message clair tant que ANTHROPIC_API_KEY n'existe pas), photos ⬜ et
+   recherche web de prix ⬜ à faire.
 
 ## Décisions actées en cours de route
 
@@ -140,6 +143,19 @@ Vercel. Détails d'infra :
   dans le code) ; `maxDuration = 120` sur la page chiffrage (l'appel peut
   durer plus d'une minute). Messages d'erreur en clair (clé absente ou
   invalide, saturation, réseau).
+
+- **Tableau de bord** (étape 6, construite le 2026-07-08) : page
+  `/tableau-de-bord`, **accessible à tous les rôles** (tranché par
+  Christian le 2026-07-08 — pas de cloisonnement), lien dans l'en-tête
+  (sur mobile, le texte du logo s'efface au profit des liens de
+  navigation). Contenu (PRD §5.4) : 4 chiffres clés (chiffrages à valider
+  + montant, budget engagé, retards, priorités haute/urgente), barre et
+  grille de répartition par statut (cliquable → liste filtrée
+  `?statut=`), liste des chiffrages soumis (lien direct vers la page de
+  décision), liste des travaux en retard ou prioritaires (8 max).
+  **Budget engagé** = somme de la dernière version validée de chaque
+  travail (les anciennes versions validées ne comptent pas deux fois).
+  Aucune migration : uniquement des lectures.
 
 ## Règles métier (rappel)
 
