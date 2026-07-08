@@ -218,8 +218,19 @@ Vercel. Détails d'infra :
      consommables/outillage à écarter). Fichier de tri généré :
      `TRI_SITES_IMPORT.xlsx` (même dossier SharePoint) — 1 ligne par
      site, listes déroulantes Créer / Rapprocher / Écarter +
-     rapprochements pré-remplis. Quand Christian le rend : générer la
-     migration d'import (0010) à partir de CMT SUIVI P5.xlsx + le tri.
+     rapprochements pré-remplis. Tri rendu le 2026-07-08, arbitrages :
+     un bâtiment indiqué vaut rapprochement même si la liste déroulante
+     dit « Créer » (8 lignes concernées, dont les 4 LNA SANTE) ;
+     Théâtre de la Pépinière et Ville de Puteaux → nouveaux bâtiments.
+     Migration `0010_import_devis.sql` **générée** (script Python à
+     partir de CMT SUIVI P5.xlsx + le tri) : 36 nouveaux bâtiments,
+     105 demandes (2 lignes internes écartées), 104 chiffrages validés
+     à 1 poste forfait (3 589 768,96 € HT ; 1 devis sans montant),
+     import porté par le compte direction, garde-fou anti-double-import
+     (refuse si un `reference_devis` existe déjà). **À exécuter par
+     Christian après la 0009.** NB : le devis DE00001369 « ANNULE —
+     NOUVEAU DEVIS 1446 » est importé tel quel (statut Validé) — à
+     clôturer dans l'app si besoin.
   5. **Rattrapage sites** : la production n'avait jamais reçu les 41
      sites réels (voir la leçon plus haut) — migration
      `0009_rattrapage_sites_reels.sql` (insertion sans doublon +
