@@ -177,6 +177,12 @@ Sur l'écran de chiffrage / le tableau des postes :
 - Pouvoir **cocher des lignes** (cases à cocher — usage à préciser : suppression multiple ? sélection ?).
 - Tableau avec des **bordures visibles gris clair**.
 
+Sur la navigation générale (remarque du 2026-07-08 également) :
+
+- Une **navigation latérale** (sur le côté), séparée du tableau/contenu
+  principal, avec au moins : lien **Tableau de bord** et **Liste des
+  utilisateurs** (une table des utilisateurs).
+
 ## Points non tranchés (demander à Christian le moment venu)
 
 - Structure précise de l'import Excel initial des travaux.
