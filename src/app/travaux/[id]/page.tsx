@@ -77,8 +77,16 @@ export default async function TravailPage({
     totaux: totauxLignes(c.lignes ?? []),
   }));
   const brouillonExiste = listeChiffrages.some((c) => c.statut === "brouillon");
+  // Pas de nouveau chiffrage tant qu'une version attend la décision de
+  // la direction (même règle que la fonction SQL creer_chiffrage).
+  const soumissionEnAttente = listeChiffrages.some(
+    (c) => c.statut === "soumis"
+  );
   const peutCreerChiffrage =
-    peutChiffrer(profil.role) && !brouillonExiste && !erreurChiffrages;
+    peutChiffrer(profil.role) &&
+    !brouillonExiste &&
+    !soumissionEnAttente &&
+    !erreurChiffrages;
 
   return (
     <div className="flex flex-1 flex-col">
@@ -162,7 +170,16 @@ export default async function TravailPage({
         <section className="flex flex-col gap-3 rounded-xl border bg-card p-5 shadow-sm">
           <div className="flex flex-wrap items-center justify-between gap-2">
             <h2 className="text-base font-semibold">Chiffrage</h2>
-            {peutCreerChiffrage && <CreerChiffrageBouton travailId={travail.id} />}
+            {peutCreerChiffrage && (
+              <CreerChiffrageBouton
+                travailId={travail.id}
+                libelle={
+                  listeChiffrages.length > 0
+                    ? "Nouvelle version"
+                    : "Créer un chiffrage"
+                }
+              />
+            )}
           </div>
 
           {erreurChiffrages ? (

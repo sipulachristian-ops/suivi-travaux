@@ -3,7 +3,11 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
-import { getProfilConnecte, peutChiffrer } from "@/lib/auth";
+import {
+  getProfilConnecte,
+  peutChiffrer,
+  peutValiderChiffrage,
+} from "@/lib/auth";
 import { UNITES, type LigneSaisie } from "@/lib/chiffrages";
 
 // Crée un chiffrage (version suivante) pour un travail, via la fonction
@@ -120,6 +124,92 @@ export async function enregistrerLignes(
     return { error: "Enregistrement impossible. Réessayez dans un instant." };
   }
 
+  revalidatePath(`/travaux/${travailId}`);
+  revalidatePath(`/travaux/${travailId}/chiffrages/${chiffrageId}`);
+  return {};
+}
+
+// Traduit les erreurs des fonctions SQL du workflow en message clair.
+function messageErreurWorkflow(
+  error: { code?: string; message: string } | null,
+  action: string
+): string {
+  // P0001 : message levé par la fonction SQL elle-même (déjà en clair)
+  if (error?.code === "P0001") {
+    return error.message;
+  }
+  // PGRST2xx : l'API Supabase ne connaît pas (encore) la fonction —
+  // migration 0006 pas exécutée, ou cache pas encore rafraîchi.
+  if (error?.code?.startsWith("PGRST")) {
+    return "La base de données n'est pas encore prête (migration 0006). Si vous venez de l'exécuter, attendez quelques secondes puis réessayez.";
+  }
+  console.error(`${action} :`, error);
+  return `${action} impossible (détail technique : ${
+    error ? `${error.code ?? "?"} — ${error.message}` : "réponse vide"
+  }).`;
+}
+
+// Soumet un chiffrage à la direction via la fonction SQL
+// soumettre_chiffrage : le chiffrage est figé (plus modifiable) et le
+// travail passe « En attente de validation », le tout journalisé.
+export async function soumettreChiffrage(
+  chiffrageId: string,
+  travailId: string
+): Promise<{ error?: string }> {
+  const profil = await getProfilConnecte();
+  if (!peutChiffrer(profil.role)) {
+    return { error: "Votre rôle ne permet pas de soumettre un chiffrage." };
+  }
+
+  const supabase = await createClient();
+  const { error } = await supabase.rpc("soumettre_chiffrage", {
+    p_chiffrage_id: chiffrageId,
+  });
+
+  if (error) {
+    return { error: messageErreurWorkflow(error, "Soumission") };
+  }
+
+  revalidatePath("/travaux");
+  revalidatePath(`/travaux/${travailId}`);
+  revalidatePath(`/travaux/${travailId}/chiffrages/${chiffrageId}`);
+  return {};
+}
+
+// Valide ou refuse un chiffrage soumis, via la fonction SQL
+// decider_chiffrage. Règle métier : seule la direction décide, et un
+// refus est toujours motivé. Le statut du travail suit la décision.
+export async function deciderChiffrage(
+  chiffrageId: string,
+  travailId: string,
+  decision: "valide" | "refuse",
+  motif: string
+): Promise<{ error?: string }> {
+  const profil = await getProfilConnecte();
+  if (!peutValiderChiffrage(profil.role)) {
+    return { error: "Seule la direction peut valider ou refuser un chiffrage." };
+  }
+
+  const motifPropre = String(motif ?? "").trim();
+  if (decision === "refuse" && !motifPropre) {
+    return { error: "Indiquez le motif du refus." };
+  }
+  if (motifPropre.length > 2000) {
+    return { error: "Le motif est trop long (2000 caractères maximum)." };
+  }
+
+  const supabase = await createClient();
+  const { error } = await supabase.rpc("decider_chiffrage", {
+    p_chiffrage_id: chiffrageId,
+    p_decision: decision,
+    p_motif: motifPropre,
+  });
+
+  if (error) {
+    return { error: messageErreurWorkflow(error, "Décision") };
+  }
+
+  revalidatePath("/travaux");
   revalidatePath(`/travaux/${travailId}`);
   revalidatePath(`/travaux/${travailId}/chiffrages/${chiffrageId}`);
   return {};

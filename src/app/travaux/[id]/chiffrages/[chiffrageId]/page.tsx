@@ -1,10 +1,15 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
-import { getProfilConnecte, peutChiffrer } from "@/lib/auth";
+import {
+  getProfilConnecte,
+  peutChiffrer,
+  peutValiderChiffrage,
+} from "@/lib/auth";
 import { AppHeader } from "@/components/app-header";
 import { Badge } from "@/components/ui/badge";
 import { ChiffrageEditeur } from "../chiffrage-editeur";
+import { DecisionChiffrage } from "../decision-chiffrage";
 import { formatDateFr } from "@/lib/travaux";
 import {
   STATUT_CHIFFRAGE_LABELS,
@@ -26,14 +31,37 @@ export default async function ChiffragePage({
   const { id: travailId, chiffrageId } = await params;
   const supabase = await createClient();
 
-  const { data: chiffrage } = await supabase
+  const { data: chiffrage, error } = await supabase
     .from("chiffrages")
     .select(
-      "id, travail_id, version, statut, created_at, auteur:profiles!chiffrages_auteur_fkey(full_name), lignes:chiffrage_lignes(id, position, libelle, quantite, unite, prix_unitaire, montant, heures), travail:travaux(id, numero, titre)"
+      "id, travail_id, version, statut, created_at, soumis_le, decide_le, motif_refus, auteur:profiles!chiffrages_auteur_fkey(full_name), soumis_par:profiles!chiffrages_soumis_par_fkey(full_name), decide_par:profiles!chiffrages_decide_par_fkey(full_name), lignes:chiffrage_lignes(id, position, libelle, quantite, unite, prix_unitaire, montant, heures), travail:travaux(id, numero, titre)"
     )
     .eq("id", chiffrageId)
     .order("position", { referencedTable: "chiffrage_lignes" })
     .single();
+
+  // Erreur autre que « ligne introuvable » : très probablement la
+  // migration 0006 (colonnes du workflow) pas encore exécutée.
+  if (error && error.code !== "PGRST116") {
+    return (
+      <div className="flex flex-1 flex-col">
+        <AppHeader fullName={profil.fullName} role={profil.role} />
+        <main className="mx-auto flex w-full max-w-2xl flex-1 flex-col gap-4 px-4 py-6 sm:px-6">
+          <Link
+            href={`/travaux/${travailId}`}
+            className="text-sm text-muted-foreground hover:underline"
+          >
+            ← Retour au travail
+          </Link>
+          <p className="rounded-xl border bg-card p-5 text-sm text-muted-foreground shadow-sm">
+            Cette page sera disponible une fois la migration 0006 exécutée
+            dans Supabase. Si vous venez de l&apos;exécuter, attendez quelques
+            secondes puis rechargez la page.
+          </p>
+        </main>
+      </div>
+    );
+  }
 
   if (!chiffrage || chiffrage.travail_id !== travailId) {
     notFound();
@@ -41,6 +69,12 @@ export default async function ChiffragePage({
 
   const statut = chiffrage.statut as StatutChiffrage;
   const auteur = chiffrage.auteur as unknown as { full_name: string } | null;
+  const soumisPar = chiffrage.soumis_par as unknown as {
+    full_name: string;
+  } | null;
+  const decidePar = chiffrage.decide_par as unknown as {
+    full_name: string;
+  } | null;
   const travail = chiffrage.travail as unknown as {
     id: string;
     numero: number;
@@ -49,6 +83,7 @@ export default async function ChiffragePage({
   const lignes = (chiffrage.lignes ?? []) as LigneChiffrage[];
   const totaux = totauxLignes(lignes);
   const modifiable = peutChiffrer(profil.role) && statut === "brouillon";
+  const decideur = statut === "soumis" && peutValiderChiffrage(profil.role);
 
   return (
     <div className="flex flex-1 flex-col">
@@ -73,13 +108,47 @@ export default async function ChiffragePage({
             Version {chiffrage.version} · créé par {auteur?.full_name || "?"} le{" "}
             {formatDateFr(chiffrage.created_at)}
           </p>
+          {chiffrage.soumis_le && (
+            <p className="text-sm text-muted-foreground">
+              Soumis à validation par {soumisPar?.full_name || "?"} le{" "}
+              {formatDateFr(chiffrage.soumis_le)}
+              {chiffrage.decide_le && (
+                <>
+                  {" · "}
+                  {statut === "valide" ? "validé" : "refusé"} par{" "}
+                  {decidePar?.full_name || "?"} le{" "}
+                  {formatDateFr(chiffrage.decide_le)}
+                </>
+              )}
+            </p>
+          )}
           {modifiable && (
             <p className="text-sm text-muted-foreground">
-              Saisissez les postes un par un, puis enregistrez. La soumission à
-              la direction arrivera avec le workflow de validation.
+              Saisissez les postes un par un, enregistrez, puis soumettez le
+              chiffrage à la direction quand il est prêt.
             </p>
           )}
         </div>
+
+        {statut === "refuse" && chiffrage.motif_refus && (
+          <div className="rounded-xl border border-red-200 bg-red-50 p-4">
+            <p className="text-sm font-medium text-red-900">Motif du refus</p>
+            <p className="mt-1 whitespace-pre-wrap text-sm text-red-800">
+              {chiffrage.motif_refus}
+            </p>
+          </div>
+        )}
+
+        {decideur && (
+          <DecisionChiffrage chiffrageId={chiffrage.id} travailId={travail.id} />
+        )}
+
+        {statut === "soumis" && !decideur && (
+          <p className="rounded-xl border border-amber-200 bg-amber-50/60 p-4 text-sm text-amber-900">
+            Ce chiffrage est en attente de validation par la direction : il
+            n&apos;est plus modifiable.
+          </p>
+        )}
 
         {modifiable ? (
           <ChiffrageEditeur

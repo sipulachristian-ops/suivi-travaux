@@ -55,10 +55,12 @@ Vercel. Détails d'infra :
 2. ✅ **Gestion des travaux** — créer, lister, filtrer ; vue liste (validée par Christian le 2026-07-08).
 3. ✅ **Vue Kanban** — bascule liste/Kanban, glisser-déposer, historique des
    statuts (validée par Christian le 2026-07-08, migration 0003 exécutée).
-4. 🔄 **Chiffrage manuel** — saisie poste par poste, sans IA (construite le
-   2026-07-08, en test par Christian — nécessite la migration
-   `0004_chiffrages.sql`).
-5. ⬜ **Workflow de validation** — soumission, validation/refus, versionnage.
+4. ✅ **Chiffrage manuel** — saisie poste par poste, sans IA (validée par
+   Christian le 2026-07-08 — « passons à l'étape 5 » ; migrations 0004 et
+   0005 ; ses remarques d'ergonomie sont consignées plus bas, à traiter).
+5. 🔄 **Workflow de validation** — soumission, validation/refus motivé,
+   versionnage (construite le 2026-07-08, en test par Christian —
+   nécessite la migration `0006_workflow_validation.sql`).
 6. ⬜ **Chiffrage IA** — API Claude (texte + photos) + recherche web.
 7. ⬜ **Vue synthétique direction** — tableau de bord.
 8. ⬜ **Notifications + import Excel**.
@@ -104,6 +106,23 @@ Vercel. Détails d'infra :
   `remplacer_lignes_chiffrage` (atomique, RLS : rôles autorisés + brouillon).
   Page : `/travaux/[id]/chiffrages/[chiffrageId]`. La soumission à
   validation arrive à l'étape 5.
+
+- **Workflow de validation** (étape 5, construit le 2026-07-08, migration
+  `0006_workflow_validation.sql`) : soumission depuis l'éditeur de chiffrage
+  (bouton « Soumettre à la direction » : enregistre les postes puis fige le
+  chiffrage, avec confirmation) via la fonction SQL `soumettre_chiffrage`
+  (security definer : ≥ 1 poste requis, une seule soumission en attente par
+  travail, travail → « En attente de validation » journalisé). Décision via
+  `decider_chiffrage` (direction uniquement, refus motivé obligatoire,
+  travail → Validé/Refusé journalisé) — bloc « Décision de la direction »
+  sur la page du chiffrage (statut `soumis`). Traçabilité sur `chiffrages` :
+  `soumis_le/par`, `decide_le/par`, `motif_refus` (affiché en rouge sur la
+  version refusée). `creer_chiffrage` mise à jour : bloquée tant qu'une
+  version est `soumis`, nouvelle version **pré-remplie avec les postes de la
+  précédente**, travail `refuse` → « Chiffrage en cours » journalisé. Le
+  sélecteur manuel de statut de la fiche reste inchangé (la direction peut
+  toujours passer Validé/Refusé à la main — à restreindre plus tard si
+  Christian le souhaite).
 
 ## Règles métier (rappel)
 

@@ -58,3 +58,8 @@ export const ROLES_CHIFFRAGE: UserRole[] = [
 export function peutChiffrer(role: UserRole): boolean {
   return ROLES_CHIFFRAGE.includes(role);
 }
+
+// Règle métier (PRD) : seule la direction valide ou refuse un chiffrage.
+export function peutValiderChiffrage(role: UserRole): boolean {
+  return role === "direction";
+}

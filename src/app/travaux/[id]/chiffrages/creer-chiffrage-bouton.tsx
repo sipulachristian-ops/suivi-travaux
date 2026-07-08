@@ -4,9 +4,15 @@ import { useState, useTransition } from "react";
 import { Button } from "@/components/ui/button";
 import { creerChiffrage } from "./actions";
 
-// Bouton « Créer un chiffrage » de la fiche travail : crée le brouillon
-// puis redirige vers la page de saisie des postes.
-export function CreerChiffrageBouton({ travailId }: { travailId: string }) {
+// Bouton de la fiche travail : crée le brouillon (première version ou
+// nouvelle version pré-remplie) puis redirige vers la saisie des postes.
+export function CreerChiffrageBouton({
+  travailId,
+  libelle = "Créer un chiffrage",
+}: {
+  travailId: string;
+  libelle?: string;
+}) {
   const [erreur, setErreur] = useState<string | null>(null);
   const [enCours, startTransition] = useTransition();
 
@@ -23,7 +29,7 @@ export function CreerChiffrageBouton({ travailId }: { travailId: string }) {
           })
         }
       >
-        {enCours ? "Création…" : "Créer un chiffrage"}
+        {enCours ? "Création…" : libelle}
       </Button>
       {erreur && <p className="text-sm text-red-600">{erreur}</p>}
     </div>

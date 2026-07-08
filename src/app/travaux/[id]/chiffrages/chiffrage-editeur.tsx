@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useState, useTransition } from "react";
+import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -12,7 +13,7 @@ import {
   type LigneSaisie,
   type Unite,
 } from "@/lib/chiffrages";
-import { enregistrerLignes } from "./actions";
+import { enregistrerLignes, soumettreChiffrage } from "./actions";
 
 // Une ligne en cours de saisie : quantité et prix unitaire restent du
 // texte (virgule française acceptée), la conversion se fait à
@@ -73,7 +74,9 @@ export function ChiffrageEditeur({
   );
   const [erreur, setErreur] = useState<string | null>(null);
   const [enregistre, setEnregistre] = useState(false);
+  const [confirmeSoumission, setConfirmeSoumission] = useState(false);
   const [enCours, startTransition] = useTransition();
+  const router = useRouter();
 
   function modifier(cle: number, champ: keyof LigneEdition, valeur: string) {
     setEnregistre(false);
@@ -114,9 +117,9 @@ export function ChiffrageEditeur({
     );
   }, [lignes]);
 
-  function enregistrer() {
-    setErreur(null);
-
+  // Transforme la saisie en postes prêts à envoyer ; en cas d'erreur,
+  // l'affiche et renvoie null (les lignes laissées vides sont ignorées).
+  function construirePostes(): LigneSaisie[] | null {
     const postes: LigneSaisie[] = [];
     for (const [index, ligne] of lignes.entries()) {
       const libelle = ligne.libelle.trim();
@@ -126,17 +129,17 @@ export function ChiffrageEditeur({
 
       if (!libelle) {
         setErreur(`Le poste n° ${index + 1} n'a pas de libellé.`);
-        return;
+        return null;
       }
       const quantite = versNombre(ligne.quantite) ?? 1;
       if (Number.isNaN(quantite)) {
         setErreur(`Quantité invalide pour « ${libelle} ».`);
-        return;
+        return null;
       }
       const prixUnitaire = versNombre(ligne.prixUnitaire) ?? 0;
       if (Number.isNaN(prixUnitaire)) {
         setErreur(`Prix unitaire invalide pour « ${libelle} ».`);
-        return;
+        return null;
       }
       postes.push({
         libelle,
@@ -147,6 +150,13 @@ export function ChiffrageEditeur({
         prix_unitaire: prixUnitaire,
       });
     }
+    return postes;
+  }
+
+  function enregistrer() {
+    setErreur(null);
+    const postes = construirePostes();
+    if (!postes) return;
 
     startTransition(async () => {
       const resultat = await enregistrerLignes(chiffrageId, travailId, postes);
@@ -155,6 +165,33 @@ export function ChiffrageEditeur({
       } else {
         setEnregistre(true);
       }
+    });
+  }
+
+  // Soumission : enregistre les postes puis fige le chiffrage (le
+  // travail passe « En attente de validation »). Confirmée en deux temps.
+  function soumettre() {
+    setErreur(null);
+    const postes = construirePostes();
+    if (!postes) return;
+    if (postes.length === 0) {
+      setErreur("Ajoutez au moins un poste avant de soumettre.");
+      return;
+    }
+
+    startTransition(async () => {
+      const sauvegarde = await enregistrerLignes(chiffrageId, travailId, postes);
+      if (sauvegarde.error) {
+        setErreur(sauvegarde.error);
+        return;
+      }
+      const resultat = await soumettreChiffrage(chiffrageId, travailId);
+      if (resultat.error) {
+        setErreur(resultat.error);
+        return;
+      }
+      setConfirmeSoumission(false);
+      router.refresh(); // la page passe en lecture seule (chiffrage soumis)
     });
   }
 
@@ -247,15 +284,54 @@ export function ChiffrageEditeur({
           {" · "}
           <span className="tabular-nums">{formatHeures(totaux.heures)}</span>
         </p>
-        <div className="flex items-center gap-3">
+        <div className="flex flex-wrap items-center gap-3">
           {enregistre && !enCours && (
             <span className="text-sm text-green-700">Enregistré ✓</span>
           )}
-          <Button type="button" disabled={enCours} onClick={enregistrer}>
+          <Button
+            type="button"
+            variant="outline"
+            disabled={enCours || confirmeSoumission}
+            onClick={() => {
+              setErreur(null);
+              setConfirmeSoumission(true);
+            }}
+          >
+            Soumettre à la direction
+          </Button>
+          <Button
+            type="button"
+            disabled={enCours || confirmeSoumission}
+            onClick={enregistrer}
+          >
             {enCours ? "Enregistrement…" : "Enregistrer le chiffrage"}
           </Button>
         </div>
       </div>
+
+      {confirmeSoumission && (
+        <div className="flex flex-col gap-3 rounded-md border border-amber-200 bg-amber-50 px-4 py-3">
+          <p className="text-sm text-amber-900">
+            Une fois soumis, le chiffrage ne sera plus modifiable et la
+            direction sera invitée à le valider ou le refuser. Les postes
+            saisis seront enregistrés avant l&apos;envoi.
+          </p>
+          <div className="flex flex-wrap items-center gap-3">
+            <Button type="button" size="sm" disabled={enCours} onClick={soumettre}>
+              {enCours ? "Soumission…" : "Confirmer la soumission"}
+            </Button>
+            <Button
+              type="button"
+              size="sm"
+              variant="ghost"
+              disabled={enCours}
+              onClick={() => setConfirmeSoumission(false)}
+            >
+              Annuler
+            </Button>
+          </div>
+        </div>
+      )}
 
       {erreur && (
         <p className="rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
