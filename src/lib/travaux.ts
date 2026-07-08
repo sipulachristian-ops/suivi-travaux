@@ -105,4 +105,13 @@ export type TravailListe = {
   echeance: string | null;
   batiment: { nom: string } | null;
   responsable: { full_name: string } | null;
+  // Suivi commercial (migration 0008, rempli par l'import Excel)
+  reference_devis: string;
+  numero_os: string;
+  montant_os: number | null;
+  sous_traitance: boolean | null;
+  nom_sous_traitant: string;
+  rapport_intervention: string;
+  cat: string;
+  facturation: string;
 };

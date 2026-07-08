@@ -212,6 +212,13 @@ Vercel. Détails d'infra :
      fiche dans une carte « Suivi commercial » (visible seulement si
      renseignées ; requête séparée, tolérante si la 0008 manque).
      Pas encore modifiables dans le formulaire — à voir avec Christian.
+     Depuis le retour de Christian post-import (2026-07-08) : le
+     **tableau de la liste** affiche aussi le suivi commercial
+     (N° devis, OS + montant, sous-traitance, rapport, CAT,
+     facturation), page élargie à `max-w-[100rem]`, cellules
+     `whitespace-nowrap` + défilement horizontal du composant Table.
+     ⚠️ Le select de `/travaux` inclut désormais ces colonnes : la
+     page liste REQUIERT la migration 0008.
   4. **Sites : Christian trie lui-même** — la colonne « Site » du
      fichier est plutôt le client (49 valeurs, 0 correspondance exacte
      avec les 41 bâtiments, 35 inconnues, 2 lignes internes

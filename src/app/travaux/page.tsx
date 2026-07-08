@@ -25,6 +25,7 @@ import {
   estEnRetard,
   type TravailListe,
 } from "@/lib/travaux";
+import { formatEuros } from "@/lib/chiffrages";
 import { cn } from "@/lib/utils";
 
 export const dynamic = "force-dynamic";
@@ -54,7 +55,7 @@ export default async function TravauxPage({
   let query = supabase
     .from("travaux")
     .select(
-      "id, numero, titre, nature, priorite, statut, echeance, batiment:batiments(nom), responsable:profiles!travaux_responsable_id_fkey(full_name)"
+      "id, numero, titre, nature, priorite, statut, echeance, batiment:batiments(nom), responsable:profiles!travaux_responsable_id_fkey(full_name), reference_devis, numero_os, montant_os, sous_traitance, nom_sous_traitant, rapport_intervention, cat, facturation"
     )
     .order("created_at", { ascending: false });
 
@@ -82,7 +83,9 @@ export default async function TravauxPage({
   return (
     <div className="flex flex-1 flex-col">
       <AppHeader fullName={profil.fullName} role={profil.role} />
-      <main className="mx-auto flex w-full max-w-6xl flex-1 flex-col gap-4 px-4 py-5 sm:px-6">
+      {/* Plus large que les autres pages : le tableau porte aussi le
+          suivi commercial (demande de Christian) */}
+      <main className="mx-auto flex w-full max-w-[100rem] flex-1 flex-col gap-4 px-4 py-5 sm:px-6">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div className="flex items-baseline gap-2.5">
             <h1 className="text-2xl font-semibold tracking-tight">Travaux</h1>
@@ -157,6 +160,24 @@ export default async function TravauxPage({
                     <TableHead className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
                       Responsable
                     </TableHead>
+                    <TableHead className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+                      N° devis
+                    </TableHead>
+                    <TableHead className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+                      OS
+                    </TableHead>
+                    <TableHead className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+                      Sous-traitance
+                    </TableHead>
+                    <TableHead className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+                      Rapport
+                    </TableHead>
+                    <TableHead className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+                      CAT
+                    </TableHead>
+                    <TableHead className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+                      Facturation
+                    </TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -168,7 +189,7 @@ export default async function TravauxPage({
                       <TableCell className="font-mono text-xs font-medium text-primary">
                         T-{t.numero}
                       </TableCell>
-                      <TableCell>
+                      <TableCell className="min-w-72">
                         <Link
                           href={`/travaux/${t.id}`}
                           className="font-medium hover:text-primary hover:underline"
@@ -181,7 +202,9 @@ export default async function TravauxPage({
                           </p>
                         )}
                       </TableCell>
-                      <TableCell>{t.batiment?.nom ?? "—"}</TableCell>
+                      <TableCell className="min-w-44">
+                        {t.batiment?.nom ?? "—"}
+                      </TableCell>
                       <TableCell>
                         <Badge
                           variant="outline"
@@ -200,6 +223,7 @@ export default async function TravauxPage({
                       </TableCell>
                       <TableCell
                         className={cn(
+                          "whitespace-nowrap",
                           estEnRetard(t.echeance, t.statut) &&
                             "font-medium text-red-600"
                         )}
@@ -209,7 +233,45 @@ export default async function TravauxPage({
                           <span className="block text-[11px]">en retard</span>
                         )}
                       </TableCell>
-                      <TableCell>{t.responsable?.full_name ?? "—"}</TableCell>
+                      <TableCell className="whitespace-nowrap">
+                        {t.responsable?.full_name ?? "—"}
+                      </TableCell>
+                      <TableCell className="whitespace-nowrap font-mono text-xs">
+                        {t.reference_devis || "—"}
+                      </TableCell>
+                      <TableCell className="whitespace-nowrap">
+                        {t.numero_os ? (
+                          <>
+                            <span className="font-mono text-xs">
+                              {t.numero_os}
+                            </span>
+                            {t.montant_os !== null && (
+                              <span className="block text-xs text-muted-foreground">
+                                {formatEuros(Number(t.montant_os))}
+                              </span>
+                            )}
+                          </>
+                        ) : (
+                          "—"
+                        )}
+                      </TableCell>
+                      <TableCell className="whitespace-nowrap">
+                        {t.nom_sous_traitant ||
+                          (t.sous_traitance === null
+                            ? "—"
+                            : t.sous_traitance
+                              ? "Oui"
+                              : "Non")}
+                      </TableCell>
+                      <TableCell className="whitespace-nowrap">
+                        {t.rapport_intervention || "—"}
+                      </TableCell>
+                      <TableCell className="whitespace-nowrap">
+                        {t.cat || "—"}
+                      </TableCell>
+                      <TableCell className="whitespace-nowrap">
+                        {t.facturation || "—"}
+                      </TableCell>
                     </TableRow>
                   ))}
                 </TableBody>
@@ -233,6 +295,7 @@ export default async function TravauxPage({
                   <p className="mt-1 text-sm text-muted-foreground">
                     {t.batiment?.nom ?? "—"}
                     {t.echeance ? ` · échéance ${formatDateFr(t.echeance)}` : ""}
+                    {t.reference_devis ? ` · devis ${t.reference_devis}` : ""}
                   </p>
                   <div className="mt-3 flex flex-wrap gap-2">
                     <Badge variant="outline" className={STATUT_STYLES[t.statut]}>
