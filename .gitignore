@@ -39,3 +39,8 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# karpathy-wiki (outillage local)
+.ingest.log
+.wiki-config
+wiki/
