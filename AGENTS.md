@@ -58,9 +58,9 @@ Vercel. Détails d'infra :
 4. ✅ **Chiffrage manuel** — saisie poste par poste, sans IA (validée par
    Christian le 2026-07-08 — « passons à l'étape 5 » ; migrations 0004 et
    0005 ; ses remarques d'ergonomie sont consignées plus bas, à traiter).
-5. 🔄 **Workflow de validation** — soumission, validation/refus motivé,
-   versionnage (construite le 2026-07-08, en test par Christian —
-   nécessite la migration `0006_workflow_validation.sql`).
+5. ✅ **Workflow de validation** — soumission, validation/refus motivé,
+   versionnage (validée par Christian le 2026-07-08, migration 0006
+   exécutée).
 6. ⬜ **Chiffrage IA** — API Claude (texte + photos) + recherche web.
 7. ⬜ **Vue synthétique direction** — tableau de bord.
 8. ⬜ **Notifications + import Excel**.
