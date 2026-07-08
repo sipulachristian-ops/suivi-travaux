@@ -217,6 +217,10 @@ Vercel. Détails d'infra :
      (N° devis, OS + montant, sous-traitance, rapport, CAT,
      facturation), page élargie à `max-w-[100rem]`, cellules
      `whitespace-nowrap` + défilement horizontal du composant Table.
+     Après essais : **seule la ligne d'en-tête est figée** (sticky) —
+     Christian a testé les colonnes N°/Intitulé figées façon Excel et
+     les a refusées (« fige uniquement la ligne supérieure »). Le
+     tableau a sa propre hauteur (`max-h-[calc(100dvh-14rem)]`).
      ⚠️ Le select de `/travaux` inclut désormais ces colonnes : la
      page liste REQUIERT la migration 0008.
   4. **Sites : Christian trie lui-même** — la colonne « Site » du
