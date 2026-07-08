@@ -4,7 +4,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { getProfilConnecte, peutChiffrer } from "@/lib/auth";
-import type { LigneSaisie } from "@/lib/chiffrages";
+import { UNITES, type LigneSaisie } from "@/lib/chiffrages";
 
 // Crée un chiffrage (version suivante) pour un travail, via la fonction
 // SQL creer_chiffrage : numéro de version + passage éventuel du travail
@@ -71,14 +71,21 @@ export async function enregistrerLignes(
       return { error: "Chaque poste doit avoir un libellé." };
     }
     if (
-      !Number.isFinite(ligne.montant) ||
-      ligne.montant < 0 ||
-      ligne.montant >= 1_000_000_000
+      !Number.isFinite(ligne.quantite) ||
+      ligne.quantite < 0 ||
+      ligne.quantite >= 1_000_000
     ) {
-      return { error: `Montant invalide pour « ${libelle} ».` };
+      return { error: `Quantité invalide pour « ${libelle} ».` };
     }
-    if (!Number.isFinite(ligne.heures) || ligne.heures < 0 || ligne.heures >= 100_000) {
-      return { error: `Nombre d'heures invalide pour « ${libelle} ».` };
+    if (!UNITES.includes(ligne.unite)) {
+      return { error: `Unité invalide pour « ${libelle} ».` };
+    }
+    if (
+      !Number.isFinite(ligne.prix_unitaire) ||
+      ligne.prix_unitaire < 0 ||
+      ligne.prix_unitaire >= 1_000_000_000
+    ) {
+      return { error: `Prix unitaire invalide pour « ${libelle} ».` };
     }
   }
 
@@ -103,8 +110,9 @@ export async function enregistrerLignes(
     p_chiffrage_id: chiffrageId,
     p_lignes: lignes.map((l) => ({
       libelle: String(l.libelle).trim(),
-      montant: l.montant,
-      heures: l.heures,
+      quantite: l.quantite,
+      unite: l.unite,
+      prix_unitaire: l.prix_unitaire,
     })),
   });
 

@@ -91,7 +91,10 @@ Vercel. Détails d'infra :
 - **Chiffrage manuel** (étape 4, décisions actées par Christian le
   2026-07-08) : la **direction peut aussi chiffrer** (en plus du responsable
   d'affaires et de l'admin — pratique : son compte de test est direction) ;
-  une ligne (poste) = **libellé + montant (€) + heures**, totaux calculés.
+  une ligne (poste) = **libellé + quantité × prix unitaire** (unités : u, h,
+  forfait, m², ml — montant calculé ; les heures du chiffrage = somme des
+  quantités des lignes en « h »). Format initial « montant + heures » jugé
+  pas intuitif par Christian après test → migration `0005_lignes_quantite_pu.sql`.
   Tables `chiffrages` (versionnées, statut `brouillon`/`soumis`/`valide`/
   `refuse` — seule `brouillon` sert à l'étape 4) et `chiffrage_lignes`
   (migration `0004_chiffrages.sql`). Création uniquement via la fonction SQL

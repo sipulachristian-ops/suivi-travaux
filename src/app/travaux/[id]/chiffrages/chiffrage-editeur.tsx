@@ -4,35 +4,51 @@ import { useMemo, useState, useTransition } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
+  UNITES,
+  UNITE_LABELS,
   formatEuros,
   formatHeures,
   type LigneChiffrage,
   type LigneSaisie,
+  type Unite,
 } from "@/lib/chiffrages";
 import { enregistrerLignes } from "./actions";
 
-// Une ligne en cours de saisie : montant et heures restent du texte
-// (virgule française acceptée), la conversion se fait à l'enregistrement.
+// Une ligne en cours de saisie : quantité et prix unitaire restent du
+// texte (virgule française acceptée), la conversion se fait à
+// l'enregistrement. Le montant (quantité × PU) est calculé à l'affichage.
 type LigneEdition = {
   cle: number;
   libelle: string;
-  montant: string;
-  heures: string;
+  quantite: string;
+  unite: string;
+  prixUnitaire: string;
 };
 
 function versTexte(valeur: number): string {
   return valeur === 0 ? "" : String(valeur).replace(".", ",");
 }
 
-// "1 250,50" → 1250.5 ; champ vide → 0 ; texte invalide → null
+// "1 250,50" → 1250.5 ; champ vide → null ; texte invalide → NaN
 function versNombre(texte: string): number | null {
   const propre = texte.trim().replace(/\s/g, "").replace(",", ".");
-  if (propre === "") return 0;
+  if (propre === "") return null;
   const nombre = Number(propre);
-  return Number.isFinite(nombre) && nombre >= 0 ? nombre : null;
+  return Number.isFinite(nombre) && nombre >= 0 ? nombre : Number.NaN;
+}
+
+function montantLigne(ligne: LigneEdition): number | null {
+  const quantite = versNombre(ligne.quantite) ?? 1;
+  const prixUnitaire = versNombre(ligne.prixUnitaire) ?? 0;
+  if (Number.isNaN(quantite) || Number.isNaN(prixUnitaire)) return null;
+  return Math.round(quantite * prixUnitaire * 100) / 100;
 }
 
 const inputNombreClass = "text-right tabular-nums";
+const selectClass =
+  "h-9 w-full rounded-md border border-input bg-transparent px-2 text-sm shadow-xs outline-none focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px]";
+const grilleClass =
+  "sm:grid sm:grid-cols-[minmax(0,1fr)_4.5rem_4.75rem_6rem_6.5rem_2rem] sm:items-center sm:gap-2";
 
 export function ChiffrageEditeur({
   chiffrageId,
@@ -49,10 +65,11 @@ export function ChiffrageEditeur({
       ? lignesInitiales.map((l, index) => ({
           cle: index,
           libelle: l.libelle,
-          montant: versTexte(l.montant),
-          heures: versTexte(l.heures),
+          quantite: versTexte(l.quantite),
+          unite: l.unite,
+          prixUnitaire: versTexte(l.prix_unitaire),
         }))
-      : [{ cle: 0, libelle: "", montant: "", heures: "" }]
+      : [{ cle: 0, libelle: "", quantite: "1", unite: "u", prixUnitaire: "" }]
   );
   const [erreur, setErreur] = useState<string | null>(null);
   const [enregistre, setEnregistre] = useState(false);
@@ -69,7 +86,7 @@ export function ChiffrageEditeur({
     setEnregistre(false);
     setLignes((courantes) => [
       ...courantes,
-      { cle: prochaineCle, libelle: "", montant: "", heures: "" },
+      { cle: prochaineCle, libelle: "", quantite: "1", unite: "u", prixUnitaire: "" },
     ]);
     setProchaineCle((n) => n + 1);
   }
@@ -79,13 +96,20 @@ export function ChiffrageEditeur({
     setLignes((courantes) => courantes.filter((l) => l.cle !== cle));
   }
 
-  // Totaux affichés en direct pendant la saisie (lignes lisibles seulement)
+  // Totaux affichés en direct : montant = somme des quantité × PU ;
+  // heures = somme des quantités des lignes en « h »
   const totaux = useMemo(() => {
     return lignes.reduce(
-      (acc, l) => ({
-        montant: acc.montant + (versNombre(l.montant) ?? 0),
-        heures: acc.heures + (versNombre(l.heures) ?? 0),
-      }),
+      (acc, l) => {
+        const montant = montantLigne(l);
+        const quantite = versNombre(l.quantite) ?? 1;
+        return {
+          montant: acc.montant + (montant ?? 0),
+          heures:
+            acc.heures +
+            (l.unite === "h" && !Number.isNaN(quantite) ? quantite : 0),
+        };
+      },
       { montant: 0, heures: 0 }
     );
   }, [lignes]);
@@ -96,24 +120,32 @@ export function ChiffrageEditeur({
     const postes: LigneSaisie[] = [];
     for (const [index, ligne] of lignes.entries()) {
       const libelle = ligne.libelle.trim();
-      const montant = versNombre(ligne.montant);
-      const heures = versNombre(ligne.heures);
-      const vide = !libelle && !ligne.montant.trim() && !ligne.heures.trim();
-      if (vide) continue; // ligne laissée vide : on l'ignore
+      const vide =
+        !libelle && !ligne.prixUnitaire.trim() && ligne.quantite.trim() === "1";
+      if (!libelle && vide) continue; // ligne laissée vide : on l'ignore
 
       if (!libelle) {
         setErreur(`Le poste n° ${index + 1} n'a pas de libellé.`);
         return;
       }
-      if (montant === null) {
-        setErreur(`Montant invalide pour « ${libelle} ».`);
+      const quantite = versNombre(ligne.quantite) ?? 1;
+      if (Number.isNaN(quantite)) {
+        setErreur(`Quantité invalide pour « ${libelle} ».`);
         return;
       }
-      if (heures === null) {
-        setErreur(`Nombre d'heures invalide pour « ${libelle} ».`);
+      const prixUnitaire = versNombre(ligne.prixUnitaire) ?? 0;
+      if (Number.isNaN(prixUnitaire)) {
+        setErreur(`Prix unitaire invalide pour « ${libelle} ».`);
         return;
       }
-      postes.push({ libelle, montant, heures });
+      postes.push({
+        libelle,
+        quantite,
+        unite: (UNITES as readonly string[]).includes(ligne.unite)
+          ? (ligne.unite as Unite)
+          : "u",
+        prix_unitaire: prixUnitaire,
+      });
     }
 
     startTransition(async () => {
@@ -128,52 +160,78 @@ export function ChiffrageEditeur({
 
   return (
     <div className="flex flex-col gap-4 rounded-xl border bg-card p-5 shadow-sm">
-      {/* En-têtes de colonnes */}
-      <div className="grid grid-cols-[minmax(0,1fr)_5.5rem_4rem_2rem] items-center gap-2 text-xs font-medium text-muted-foreground">
+      {/* En-têtes de colonnes (masqués sur mobile : chaque champ y est empilé) */}
+      <div
+        className={`hidden text-xs font-medium text-muted-foreground ${grilleClass}`}
+      >
         <span>Poste</span>
-        <span className="text-right">Montant €</span>
-        <span className="text-right">Heures</span>
+        <span className="text-right">Qté</span>
+        <span>Unité</span>
+        <span className="text-right">P.U. €</span>
+        <span className="text-right">Montant</span>
         <span />
       </div>
 
-      <div className="flex flex-col gap-2">
-        {lignes.map((ligne, index) => (
-          <div
-            key={ligne.cle}
-            className="grid grid-cols-[minmax(0,1fr)_5.5rem_4rem_2rem] items-center gap-2"
-          >
-            <Input
-              aria-label={`Libellé du poste ${index + 1}`}
-              placeholder="Ex. : Fourniture chaudière"
-              value={ligne.libelle}
-              onChange={(e) => modifier(ligne.cle, "libelle", e.target.value)}
-            />
-            <Input
-              aria-label={`Montant du poste ${index + 1} en euros`}
-              inputMode="decimal"
-              placeholder="0,00"
-              className={inputNombreClass}
-              value={ligne.montant}
-              onChange={(e) => modifier(ligne.cle, "montant", e.target.value)}
-            />
-            <Input
-              aria-label={`Heures du poste ${index + 1}`}
-              inputMode="decimal"
-              placeholder="0"
-              className={inputNombreClass}
-              value={ligne.heures}
-              onChange={(e) => modifier(ligne.cle, "heures", e.target.value)}
-            />
-            <button
-              type="button"
-              aria-label={`Supprimer le poste ${index + 1}`}
-              className="flex h-8 w-8 items-center justify-center rounded-md text-muted-foreground hover:bg-red-50 hover:text-red-600"
-              onClick={() => supprimerLigne(ligne.cle)}
+      <div className="flex flex-col gap-4 sm:gap-2">
+        {lignes.map((ligne, index) => {
+          const montant = montantLigne(ligne);
+          return (
+            <div
+              key={ligne.cle}
+              className={`flex flex-col gap-2 rounded-lg border p-3 sm:rounded-none sm:border-0 sm:p-0 ${grilleClass}`}
             >
-              ✕
-            </button>
-          </div>
-        ))}
+              <Input
+                aria-label={`Libellé du poste ${index + 1}`}
+                placeholder="Ex. : Main d'œuvre raccordement"
+                value={ligne.libelle}
+                onChange={(e) => modifier(ligne.cle, "libelle", e.target.value)}
+              />
+              <div className="flex items-center gap-2 sm:contents">
+                <Input
+                  aria-label={`Quantité du poste ${index + 1}`}
+                  inputMode="decimal"
+                  placeholder="1"
+                  className={`w-16 sm:w-full ${inputNombreClass}`}
+                  value={ligne.quantite}
+                  onChange={(e) => modifier(ligne.cle, "quantite", e.target.value)}
+                />
+                <select
+                  aria-label={`Unité du poste ${index + 1}`}
+                  className={`w-20 sm:w-full ${selectClass}`}
+                  value={ligne.unite}
+                  onChange={(e) => modifier(ligne.cle, "unite", e.target.value)}
+                >
+                  {UNITES.map((u) => (
+                    <option key={u} value={u}>
+                      {UNITE_LABELS[u]}
+                    </option>
+                  ))}
+                </select>
+                <Input
+                  aria-label={`Prix unitaire du poste ${index + 1} en euros`}
+                  inputMode="decimal"
+                  placeholder="0,00"
+                  className={`w-24 sm:w-full ${inputNombreClass}`}
+                  value={ligne.prixUnitaire}
+                  onChange={(e) =>
+                    modifier(ligne.cle, "prixUnitaire", e.target.value)
+                  }
+                />
+                <span className="flex-1 text-right text-sm font-medium tabular-nums sm:flex-none">
+                  {montant === null ? "—" : formatEuros(montant)}
+                </span>
+                <button
+                  type="button"
+                  aria-label={`Supprimer le poste ${index + 1}`}
+                  className="flex h-8 w-8 items-center justify-center rounded-md text-muted-foreground hover:bg-red-50 hover:text-red-600"
+                  onClick={() => supprimerLigne(ligne.cle)}
+                >
+                  ✕
+                </button>
+              </div>
+            </div>
+          );
+        })}
       </div>
 
       <div>

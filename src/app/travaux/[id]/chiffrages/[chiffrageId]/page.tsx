@@ -11,6 +11,7 @@ import {
   STATUT_CHIFFRAGE_STYLES,
   formatEuros,
   formatHeures,
+  formatQuantite,
   totauxLignes,
   type LigneChiffrage,
   type StatutChiffrage,
@@ -28,7 +29,7 @@ export default async function ChiffragePage({
   const { data: chiffrage } = await supabase
     .from("chiffrages")
     .select(
-      "id, travail_id, version, statut, created_at, auteur:profiles!chiffrages_auteur_fkey(full_name), lignes:chiffrage_lignes(id, position, libelle, montant, heures), travail:travaux(id, numero, titre)"
+      "id, travail_id, version, statut, created_at, auteur:profiles!chiffrages_auteur_fkey(full_name), lignes:chiffrage_lignes(id, position, libelle, quantite, unite, prix_unitaire, montant, heures), travail:travaux(id, numero, titre)"
     )
     .eq("id", chiffrageId)
     .order("position", { referencedTable: "chiffrage_lignes" })
@@ -94,22 +95,26 @@ export default async function ChiffragePage({
               </p>
             ) : (
               <>
-                <div className="grid grid-cols-[minmax(0,1fr)_6rem_4rem] gap-2 text-xs font-medium text-muted-foreground">
+                <div className="grid grid-cols-[minmax(0,1fr)_4.5rem_6rem_6.5rem] gap-2 text-xs font-medium text-muted-foreground">
                   <span>Poste</span>
+                  <span className="text-right">Qté</span>
+                  <span className="text-right">P.U.</span>
                   <span className="text-right">Montant</span>
-                  <span className="text-right">Heures</span>
                 </div>
                 {lignes.map((ligne) => (
                   <div
                     key={ligne.id}
-                    className="grid grid-cols-[minmax(0,1fr)_6rem_4rem] gap-2 border-t pt-2 text-sm first-of-type:border-t-0"
+                    className="grid grid-cols-[minmax(0,1fr)_4.5rem_6rem_6.5rem] gap-2 border-t pt-2 text-sm first-of-type:border-t-0"
                   >
                     <span>{ligne.libelle}</span>
                     <span className="text-right tabular-nums">
-                      {formatEuros(ligne.montant)}
+                      {formatQuantite(ligne.quantite, ligne.unite)}
                     </span>
                     <span className="text-right tabular-nums">
-                      {formatHeures(ligne.heures)}
+                      {formatEuros(ligne.prix_unitaire)}
+                    </span>
+                    <span className="text-right tabular-nums">
+                      {formatEuros(ligne.montant)}
                     </span>
                   </div>
                 ))}
