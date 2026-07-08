@@ -61,7 +61,10 @@ Vercel. Détails d'infra :
 5. ✅ **Workflow de validation** — soumission, validation/refus motivé,
    versionnage (validée par Christian le 2026-07-08, migration 0006
    exécutée).
-6. ⬜ **Chiffrage IA** — API Claude (texte + photos) + recherche web.
+6. 🔶 **Chiffrage IA** — API Claude (texte + photos) + recherche web.
+   Découpée en trois sous-étapes (actées par Christian le 2026-07-08) :
+   6a ✅ construite (proposition à partir du texte — en test), 6b ⬜ photos,
+   6c ⬜ recherche web de prix.
 7. ⬜ **Vue synthétique direction** — tableau de bord.
 8. ⬜ **Notifications + import Excel**.
 
@@ -123,6 +126,20 @@ Vercel. Détails d'infra :
   sélecteur manuel de statut de la fiche reste inchangé (la direction peut
   toujours passer Validé/Refusé à la main — à restreindre plus tard si
   Christian le souhaite).
+
+- **Chiffrage IA — 6a** (construite le 2026-07-08) : bouton « Proposer avec
+  l'IA » dans l'éditeur de chiffrage (brouillon uniquement). Action serveur
+  `proposerChiffrageIA` dans `actions-ia.ts` : SDK `@anthropic-ai/sdk`,
+  modèle `claude-opus-4-8`, thinking adaptatif, **sorties structurées**
+  (schéma JSON : postes {libellé, quantité, unité, prix_unitaire} +
+  commentaire ≤ 500 car.). Garde-fous : mêmes bornes de validation que
+  l'enregistrement, la proposition ne fait que pré-remplir l'éditeur
+  (l'IA propose, l'humain dispose), confirmation avant d'écraser des
+  postes déjà saisis, commentaire affiché avec la mention « prix
+  indicatifs ». Clé dans `ANTHROPIC_API_KEY` (.env.local + Vercel — jamais
+  dans le code) ; `maxDuration = 120` sur la page chiffrage (l'appel peut
+  durer plus d'une minute). Messages d'erreur en clair (clé absente ou
+  invalide, saturation, réseau).
 
 ## Règles métier (rappel)
 

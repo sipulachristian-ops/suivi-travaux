@@ -22,6 +22,10 @@ import {
   type StatutChiffrage,
 } from "@/lib/chiffrages";
 
+// L'appel à l'IA (proposition de chiffrage) peut prendre jusqu'à une ou
+// deux minutes : on relève la durée maximale autorisée sur Vercel.
+export const maxDuration = 120;
+
 export default async function ChiffragePage({
   params,
 }: {

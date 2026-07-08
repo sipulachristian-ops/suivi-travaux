@@ -2,6 +2,7 @@
 
 import { useMemo, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
+import { Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -14,6 +15,7 @@ import {
   type Unite,
 } from "@/lib/chiffrages";
 import { enregistrerLignes, soumettreChiffrage } from "./actions";
+import { proposerChiffrageIA } from "./actions-ia";
 
 // Une ligne en cours de saisie : quantité et prix unitaire restent du
 // texte (virgule française acceptée), la conversion se fait à
@@ -75,6 +77,9 @@ export function ChiffrageEditeur({
   const [erreur, setErreur] = useState<string | null>(null);
   const [enregistre, setEnregistre] = useState(false);
   const [confirmeSoumission, setConfirmeSoumission] = useState(false);
+  const [confirmeIA, setConfirmeIA] = useState(false);
+  const [iaEnCours, setIaEnCours] = useState(false);
+  const [commentaireIA, setCommentaireIA] = useState<string | null>(null);
   const [enCours, startTransition] = useTransition();
   const router = useRouter();
 
@@ -151,6 +156,49 @@ export function ChiffrageEditeur({
       });
     }
     return postes;
+  }
+
+  // La proposition IA remplace les postes affichés : si des postes sont
+  // déjà saisis, on demande confirmation avant d'écraser.
+  function saisieCommencee(): boolean {
+    return lignes.some((l) => l.libelle.trim() || l.prixUnitaire.trim());
+  }
+
+  function demanderPropositionIA() {
+    setErreur(null);
+    if (saisieCommencee()) {
+      setConfirmeIA(true);
+      return;
+    }
+    lancerPropositionIA();
+  }
+
+  function lancerPropositionIA() {
+    setConfirmeIA(false);
+    setIaEnCours(true);
+    startTransition(async () => {
+      try {
+        const resultat = await proposerChiffrageIA(travailId);
+        if (resultat.error || !resultat.postes) {
+          setErreur(resultat.error ?? "La proposition IA a échoué. Réessayez.");
+          return;
+        }
+        setLignes(
+          resultat.postes.map((p, index) => ({
+            cle: index,
+            libelle: p.libelle,
+            quantite: versTexte(p.quantite) || "0",
+            unite: p.unite,
+            prixUnitaire: versTexte(p.prix_unitaire) || "0",
+          }))
+        );
+        setProchaineCle(resultat.postes.length);
+        setCommentaireIA(resultat.commentaire || null);
+        setEnregistre(false);
+      } finally {
+        setIaEnCours(false);
+      }
+    });
   }
 
   function enregistrer() {
@@ -271,11 +319,62 @@ export function ChiffrageEditeur({
         })}
       </div>
 
-      <div>
+      <div className="flex flex-wrap items-center justify-between gap-3">
         <Button type="button" variant="outline" size="sm" onClick={ajouterLigne}>
           + Ajouter un poste
         </Button>
+        <Button
+          type="button"
+          variant="outline"
+          size="sm"
+          className="border-primary/40 text-primary hover:bg-primary/5 hover:text-primary"
+          disabled={enCours || confirmeSoumission || confirmeIA}
+          onClick={demanderPropositionIA}
+        >
+          <Sparkles aria-hidden className="size-3.5" />
+          {iaEnCours ? "Analyse en cours…" : "Proposer avec l'IA"}
+        </Button>
       </div>
+
+      {confirmeIA && (
+        <div className="flex flex-col gap-3 rounded-md border border-primary/30 bg-primary/5 px-4 py-3">
+          <p className="text-sm">
+            L&apos;IA va analyser la description de la demande et proposer des
+            postes. <strong>Les postes actuellement saisis seront remplacés.</strong>
+          </p>
+          <div className="flex flex-wrap items-center gap-3">
+            <Button
+              type="button"
+              size="sm"
+              disabled={enCours}
+              onClick={lancerPropositionIA}
+            >
+              Remplacer par la proposition IA
+            </Button>
+            <Button
+              type="button"
+              size="sm"
+              variant="ghost"
+              disabled={enCours}
+              onClick={() => setConfirmeIA(false)}
+            >
+              Annuler
+            </Button>
+          </div>
+        </div>
+      )}
+
+      {commentaireIA && (
+        <div className="rounded-md border border-sky-200 bg-sky-50 px-4 py-3">
+          <p className="text-sm font-medium text-sky-900">
+            Proposition de l&apos;IA — prix indicatifs, à vérifier avant
+            d&apos;enregistrer
+          </p>
+          <p className="mt-1 whitespace-pre-wrap text-sm text-sky-800">
+            {commentaireIA}
+          </p>
+        </div>
+      )}
 
       <div className="flex flex-wrap items-center justify-between gap-3 border-t pt-4">
         <p className="text-sm font-medium">
